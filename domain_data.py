@@ -168,6 +168,84 @@ PFCE_DOMAINS = {
     },
 }
 
+# ── Response Patterns for Selected Tier 2 Prompts ──
+# Maps (domain_key, prompt_text) -> list of selectable pattern strings.
+# Only the prompts listed here get pattern-based UI; all others keep plain text.
+
+RESPONSE_PATTERNS = {
+    ("NON-MALEFICENCE", "Who may be harmed by this action?"): [
+        "Residents who depend on affected municipal services",
+        "Residents whose personal data may be exposed or compromised",
+        "Employees involved in response or affected operations",
+        "Third-party organizations relying on municipal systems or data",
+        "Vulnerable populations with limited access to alternatives",
+    ],
+    ("NON-MALEFICENCE", "Through what mechanism does this action produce or enable harm?"): [
+        "Loss of access to services or systems",
+        "Exposure of personal or sensitive data",
+        "Disruption to public safety or emergency services",
+        "Delayed response allowing harm to continue or spread",
+        "Resource diversion from other critical functions",
+        "Erosion of public trust in municipal institutions",
+    ],
+    ("AUTONOMY", "Is consent feasible, and if not, what justifies proceeding without it?"): [
+        "Consent is feasible and can be obtained before action",
+        "Consent is not feasible due to time constraints",
+        "Consent is not feasible because affected parties cannot be identified",
+        "Consent is not feasible due to scale of affected population",
+        "Consent is not applicable — this is an internal operational decision without direct external impact requiring consent",
+    ],
+    ("JUSTICE", "Do any groups bear disproportionate risk or loss of access?"): [
+        "No disproportionate impact identified",
+        "Lower-income populations face greater impact",
+        "Populations with fewer digital alternatives are disproportionately affected",
+        "Specific neighborhoods or communities bear concentrated impact",
+        "Communities subject to monitoring or surveillance bear privacy burden others do not",
+    ],
+    ("GOVERN", "Is this action consistent with established policy and governance expectations?"): [
+        "Consistent with existing policy",
+        "No policy exists for this type of action",
+        "Policy exists but was designed for a different purpose and may not apply",
+        "Action conflicts with or deviates from established policy",
+        "Policy exists but does not clearly address this situation",
+    ],
+    ("PROTECT", "Does this action create new exposure while addressing current risk?"): [
+        "No new exposure created",
+        "Creates temporary exposure during implementation",
+        "Addresses one risk but opens a different vulnerability",
+        "Removes a safeguard that was protecting against a different threat",
+        "Uncertain whether new exposure is created",
+    ],
+    ("RESPOND", "Does this action affect coordination with other responders or stakeholders?"): [
+        "Coordination with other parties is maintained",
+        "Action disrupts communication channels needed for coordination",
+        "Action requires notification of parties not yet informed",
+        "Action requires coordination with external agencies not yet engaged",
+        "External coordination was already limited before this action",
+    ],
+    ("RECOVER", "Does this action extend the time or effort required to restore operations?"): [
+        "Action supports faster or easier restoration",
+        "Action extends recovery timeline",
+        "Action may compromise backup integrity or availability",
+        "Recovery impact depends on conditions not yet known",
+        "Action has no meaningful effect on recovery timeline",
+    ],
+    ("BENEFICENCE", "What benefit is foregone if this action is not taken?"): [
+        "Continued vulnerability to a known risk",
+        "Loss of opportunity to contain or mitigate an active threat",
+        "Delayed improvement to security posture",
+        "Missed opportunity to establish governance precedent or oversight structure",
+        "Erosion of public trust or institutional credibility",
+    ],
+    ("EXPLICABILITY", "Could this action be explained to affected parties if questioned?"): [
+        "Yes — reasoning is clear and communicable",
+        "Partially — technical aspects may be difficult to explain to non-technical audiences",
+        "The action could be explained but the trade-offs may be difficult to justify in hindsight",
+        "Explanation would require disclosing information not yet public",
+        "The reasoning depends on conditions of uncertainty that may not be apparent after the fact",
+    ],
+}
+
 RELATIONSHIP_TYPES = [
     "",
     "Alignment",

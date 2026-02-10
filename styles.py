@@ -188,6 +188,60 @@ def inject_custom_css():
         border-radius: 8px;
     }
 
+    /* ── Response Pattern Cards (Stage 4 Tier 2) ── */
+    .response-pattern {
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #fafafa;
+        font-size: 0.88rem;
+    }
+    .response-pattern:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        box-shadow: 0 1px 4px rgba(96,165,250,0.15);
+    }
+    .response-pattern-selected {
+        border: 2px solid #2563eb;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #dbeafe;
+        box-shadow: 0 1px 4px rgba(37,99,235,0.15);
+        font-size: 0.88rem;
+    }
+    .response-pattern-selected:hover {
+        border-color: #1d4ed8;
+        background: #bfdbfe;
+    }
+    .rp-checkmark {
+        float: left;
+        margin-right: 8px;
+        color: #2563eb;
+        font-weight: 700;
+    }
+    .rp-label {
+        color: #1f2937;
+    }
+    .other-pattern {
+        border: 2px dashed #d1d5db;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        transition: all 0.2s ease;
+        background: #f9fafb;
+        font-size: 0.88rem;
+    }
+    .other-pattern:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+    }
+
     /* ── PDF export button ── */
     .pdf-download {
         text-align: center;
