@@ -1,7 +1,7 @@
 """Stage 4: Consideration Elicitation (Two-Tier)."""
 
 import streamlit as st
-from domain_data import NIST_DOMAINS, PFCE_DOMAINS, RESPONSE_PATTERNS
+from domain_data import NIST_DOMAINS, PFCE_DOMAINS
 
 
 def _render_domain_card(domain_key: str, prompt: str, description: str,
@@ -87,9 +87,10 @@ def _render_tier2():
     """Tier 2: Consideration Specification per action per activated domain."""
     st.subheader("Tier 2: Consideration Specification")
     st.markdown(
-        "For each declared action, respond to the specification prompts "
-        "for each activated domain. Respond with one to two sentences, "
-        'or mark "Not applicable to this action."'
+        "For each declared action and each activated domain, select "
+        "the considerations that apply. Use the guiding questions to "
+        "direct your attention. Select 'Other' to add considerations "
+        "not listed."
     )
 
     actions = _get_actions()
@@ -145,100 +146,9 @@ def _render_tier2():
             )
 
 
-def _render_pattern_prompt(action_key, domain_key, p_idx,
-                           prompt_text, patterns, responses):
-    """Render a prompt that has selectable response patterns.
-
-    Storage format in tier2_responses[action_key][domain_key][prompt_key]:
-      A serialized string built from selected patterns and their specs.
-      Internally we also use separate session-state keys for each checkbox
-      and spec field to survive Streamlit reruns.
-    """
-    prompt_key = str(p_idx)
-    uid = f"{action_key}_{domain_key}_{p_idx}"
-
-    st.markdown(f"**{prompt_text}**")
-    st.caption("Select all that apply. Each selection asks for a brief specification.")
-
-    collected_parts = []
-
-    for pat_idx, pattern_label in enumerate(patterns):
-        pat_uid = f"rp_{uid}_{pat_idx}"
-        spec_uid = f"rps_{uid}_{pat_idx}"
-
-        # Determine saved state
-        cb_val = st.session_state.get(pat_uid, False)
-
-        # Render visual card + checkbox
-        css_class = "response-pattern-selected" if cb_val else "response-pattern"
-        check_icon = '<span class="rp-checkmark">&#10003;</span>' if cb_val else ""
-        st.markdown(
-            f'<div class="{css_class}">'
-            f'{check_icon}'
-            f'<span class="rp-label">{pattern_label}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-        is_checked = st.checkbox(
-            pattern_label,
-            value=cb_val,
-            key=pat_uid,
-            label_visibility="collapsed",
-        )
-
-        if is_checked:
-            spec_val = st.text_input(
-                "Briefly describe how this applies to your situation",
-                value=st.session_state.get(spec_uid, ""),
-                key=spec_uid,
-                placeholder="Briefly describe how this applies to your situation",
-            )
-            collected_parts.append(
-                f"[{pattern_label}] {spec_val}" if spec_val.strip()
-                else f"[{pattern_label}]"
-            )
-
-    # "Other" option — always last, always visible
-    other_uid = f"rpo_{uid}"
-    st.markdown(
-        '<div class="other-pattern">'
-        '<span class="rp-label">Other</span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-    other_val = st.text_area(
-        "Other (free text)",
-        value=st.session_state.get(other_uid, ""),
-        key=other_uid,
-        placeholder="Describe any other consideration not listed above...",
-        height=70,
-        label_visibility="collapsed",
-    )
-    if other_val.strip():
-        collected_parts.append(f"[Other] {other_val.strip()}")
-
-    # Also support N/A
-    na_uid = f"rpna_{uid}"
-    na_val = st.checkbox(
-        "Not applicable to this action",
-        value=st.session_state.get(na_uid, False),
-        key=na_uid,
-    )
-
-    # Build the composite response string
-    if na_val:
-        composite = "N/A"
-    elif collected_parts:
-        composite = " | ".join(collected_parts)
-    else:
-        composite = ""
-
-    responses[prompt_key] = composite
-
-
 def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                            domain_defs):
-    """Render prompts for a set of domains for one action."""
+    """Render consolidated prompt with patterns for a set of domains for one action."""
     for domain_key, domain_type in domains:
         domain_info = domain_defs[domain_key]
 
@@ -277,7 +187,6 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                     )
 
                     if choice != "Specify fresh":
-                        # Extract source action index
                         source_idx = prior_actions[
                             same_as_options.index(choice) - 1
                         ][0]
@@ -297,7 +206,7 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                                 domain_key, None
                             )
 
-            # Render individual prompts
+            # Initialize response storage for this domain
             if domain_key not in st.session_state.tier2_responses.get(
                 action_key, {}
             ):
@@ -305,80 +214,62 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
 
             responses = st.session_state.tier2_responses[action_key][domain_key]
 
-            for p_idx, prompt_text in enumerate(domain_info["prompts"]):
-                prompt_key = str(p_idx)
-                patterns = RESPONSE_PATTERNS.get(
-                    (domain_key, prompt_text)
+            # Display the consolidated Tier 2 prompt
+            st.markdown(f"**{domain_info['tier2_prompt']}**")
+
+            # Display guidance questions as non-interactive reference
+            with st.expander("Guiding considerations", expanded=False):
+                for g in domain_info["guidance"]:
+                    st.markdown(f"- {g}")
+
+            # Render pattern checkboxes
+            uid = f"{action_key}_{domain_key}"
+            selected_patterns = []
+
+            for pat_idx, pattern_label in enumerate(domain_info["patterns"]):
+                pat_uid = f"pat_{uid}_{pat_idx}"
+                cb_val = st.session_state.get(pat_uid, False)
+
+                is_checked = st.checkbox(
+                    pattern_label,
+                    value=cb_val,
+                    key=pat_uid,
                 )
 
-                if patterns is not None:
-                    # Pattern-based prompt
-                    _render_pattern_prompt(
-                        action_key, domain_key, p_idx,
-                        prompt_text, patterns, responses,
-                    )
-                else:
-                    # Plain text prompt (unchanged)
-                    current_val = responses.get(prompt_key, "")
+                if is_checked:
+                    selected_patterns.append(pattern_label)
 
-                    col1, col2 = st.columns([5, 1])
-                    with col1:
-                        response = st.text_area(
-                            prompt_text,
-                            value=current_val,
-                            placeholder="One to two sentences...",
-                            key=f"t2_{action_key}_{domain_key}_{p_idx}",
-                            height=80,
-                        )
-                    with col2:
-                        st.markdown("<br>", unsafe_allow_html=True)
-                        na_key = f"na_{action_key}_{domain_key}_{p_idx}"
-                        is_na = current_val == "N/A"
-                        if st.checkbox(
-                            "N/A",
-                            value=is_na,
-                            key=na_key,
-                            help="Mark as not applicable to this action",
-                        ):
-                            response = "N/A"
+            # "Other" free text — always visible
+            other_uid = f"pat_other_{uid}"
+            other_val = st.text_input(
+                "Other",
+                value=st.session_state.get(other_uid, ""),
+                key=other_uid,
+                placeholder="Describe any other consideration not listed above...",
+            )
+            if other_val.strip():
+                selected_patterns.append(f"[Other] {other_val.strip()}")
 
-                    st.session_state.tier2_responses[action_key][
-                        domain_key
-                    ][prompt_key] = response
+            # N/A option
+            na_uid = f"pat_na_{uid}"
+            na_val = st.checkbox(
+                "Not applicable to this action",
+                value=st.session_state.get(na_uid, False),
+                key=na_uid,
+            )
+
+            # Store as composite string for downstream consumption
+            # Format: pipe-separated pattern labels, or "N/A"
+            if na_val:
+                responses["0"] = "N/A"
+            elif selected_patterns:
+                responses["0"] = " | ".join(selected_patterns)
+            else:
+                responses["0"] = ""
 
 
 def _check_tier2_complete():
-    """Check if all activated domains for all actions have responses."""
-    actions = _get_actions()
-    all_nist = st.session_state.selected_nist_domains
-    all_pfce = st.session_state.selected_pfce_domains
-
-    for action_idx, _ in actions:
-        action_key = str(action_idx)
-        all_domains_for_action = all_nist + all_pfce
-
-        for domain_key in all_domains_for_action:
-            # Check if "same as" is set
-            same_as = st.session_state.tier2_same_as.get(
-                action_key, {}
-            ).get(domain_key)
-            if same_as is not None:
-                continue
-
-            # Check if domain is in NIST or PFCE
-            if domain_key in NIST_DOMAINS:
-                prompts = NIST_DOMAINS[domain_key]["prompts"]
-            else:
-                prompts = PFCE_DOMAINS[domain_key]["prompts"]
-
-            responses = st.session_state.tier2_responses.get(
-                action_key, {}
-            ).get(domain_key, {})
-
-            for p_idx in range(len(prompts)):
-                val = responses.get(str(p_idx), "").strip()
-                if not val:
-                    return False
+    """No mandatory completion required for Tier 2. User may proceed at any time."""
     return True
 
 
@@ -405,13 +296,8 @@ def render_stage4():
 
     tier2_complete = _check_tier2_complete()
 
-    if not tier2_complete:
-        st.info(
-            "Complete all specification prompts (or mark N/A) for every "
-            "activated domain and every action to proceed."
-        )
-    else:
-        st.success("All considerations specified.")
+    if tier2_complete:
+        st.success("Ready to proceed to examination.")
         if st.button(
             "Proceed to Stage 5: Interaction Examination →",
             type="primary",

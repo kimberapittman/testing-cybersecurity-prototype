@@ -20,7 +20,11 @@ def _get_actions():
 
 
 def _get_response_text(action_idx, domain_key, domain_type):
-    """Get the consolidated response text for an action+domain pair."""
+    """Get the consideration text for an action+domain pair.
+
+    Returns selected pattern labels as formatted list.
+    Falls back to Tier 1 prompt if no Tier 2 selections were made.
+    """
     action_key = str(action_idx)
 
     # Check "same as" first
@@ -36,16 +40,23 @@ def _get_response_text(action_idx, domain_key, domain_type):
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
         domain_key, {}
     )
-    prompts = domain_defs[domain_key]["prompts"]
 
-    lines = []
-    for p_idx, prompt_text in enumerate(prompts):
-        val = responses.get(str(p_idx), "").strip()
-        if val and val != "N/A":
-            lines.append(f"- *{prompt_text}* {val}")
-        elif val == "N/A":
-            lines.append(f"- *{prompt_text}* N/A")
-    return "\n".join(lines) if lines else "(No response)"
+    # Under new structure, all patterns stored under key "0"
+    composite = responses.get("0", "").strip()
+
+    if composite == "N/A":
+        return "N/A"
+    elif composite:
+        # Split pipe-separated patterns and format as list
+        patterns = [p.strip() for p in composite.split("|") if p.strip()]
+        lines = [f"- {p}" for p in patterns]
+        return "\n".join(lines)
+    else:
+        # Fallback: show the Tier 1 prompt as context
+        return (
+            f"*Domain activated but no specific considerations selected.*\n\n"
+            f"*Tier 1:* {domain_defs[domain_key]['prompt']}"
+        )
 
 
 def _render_within_action_matrix(action_idx, action_text):
@@ -83,8 +94,7 @@ def _render_within_action_matrix(action_idx, action_text):
                 matrix[cell_key] = {
                     "relationship": "",
                     "explanation": "",
-                    "foregone": "",
-                    "consequences": "",
+                    "at_stake": "",
                 }
 
             cell = matrix[cell_key]
@@ -144,22 +154,14 @@ def _render_within_action_matrix(action_idx, action_text):
                         placeholder="Optionally explain this relationship...",
                     )
 
-                # Mandatory follow-ups for tension/conflict
+                # Follow-up for tension/conflict
                 if rel_choice in ("Tension", "Conflict"):
-                    st.markdown("**Required follow-up questions:**")
-                    cell["foregone"] = st.text_area(
-                        "What may be foregone if this action is taken?",
-                        value=cell.get("foregone", ""),
-                        key=f"foregone_{action_key}_{tech_domain}_{eth_domain}",
+                    cell["at_stake"] = st.text_area(
+                        "Briefly, what is at stake in this tension?",
+                        value=cell.get("at_stake", ""),
+                        key=f"atstake_{action_key}_{tech_domain}_{eth_domain}",
                         height=80,
-                        placeholder="Describe what may be lost or sacrificed...",
-                    )
-                    cell["consequences"] = st.text_area(
-                        "Who bears the resulting consequences?",
-                        value=cell.get("consequences", ""),
-                        key=f"conseq_{action_key}_{tech_domain}_{eth_domain}",
-                        height=80,
-                        placeholder="Identify who is affected and how...",
+                        placeholder="One to two sentences describing what is in tension and why it matters...",
                     )
 
             matrix[cell_key] = cell
@@ -228,9 +230,7 @@ def _check_stage5_complete():
                     return False
 
                 if rel in ("Tension", "Conflict"):
-                    if not cell.get("foregone", "").strip():
-                        return False
-                    if not cell.get("consequences", "").strip():
+                    if not cell.get("at_stake", "").strip():
                         return False
     return True
 

@@ -34,18 +34,21 @@ def _get_response_text(action_idx, domain_key, domain_type):
     if same_as is not None:
         action_key = str(same_as)
 
-    domain_defs = NIST_DOMAINS if domain_type == "nist" else PFCE_DOMAINS
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
         domain_key, {}
     )
-    prompts = domain_defs[domain_key]["prompts"]
 
-    lines = []
-    for p_idx, prompt_text in enumerate(prompts):
-        val = responses.get(str(p_idx), "").strip()
-        if val:
-            lines.append(f"  - {prompt_text}\n    {val}")
-    return "\n".join(lines) if lines else "  (No response)"
+    # Under new structure, all patterns stored under key "0"
+    composite = responses.get("0", "").strip()
+
+    if composite == "N/A":
+        return "  N/A"
+    elif composite:
+        patterns = [p.strip() for p in composite.split("|") if p.strip()]
+        lines = [f"  - {p}" for p in patterns]
+        return "\n".join(lines)
+    else:
+        return "  (No considerations selected)"
 
 
 def _compile_record():
@@ -162,10 +165,7 @@ def _compile_record():
                     )
                 if rel in ("Tension", "Conflict"):
                     sections.append(
-                        f"    Foregone: {cell.get('foregone', '')}"
-                    )
-                    sections.append(
-                        f"    Consequences: {cell.get('consequences', '')}"
+                        f"    At stake: {cell.get('at_stake', '')}"
                     )
 
     # ── Stage 5: Cross-Action Comparison ──
@@ -392,11 +392,7 @@ def _render_compiled_record(record_text: str):
                         content += f"<br><em>Explanation:</em> {cell['explanation']}"
                     if rel in ("Tension", "Conflict"):
                         content += (
-                            f"<br><em>Foregone:</em> {cell.get('foregone', '')}"
-                        )
-                        content += (
-                            f"<br><em>Consequences:</em> "
-                            f"{cell.get('consequences', '')}"
+                            f"<br><em>At stake:</em> {cell.get('at_stake', '')}"
                         )
 
                     st.markdown(
