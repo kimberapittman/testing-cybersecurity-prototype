@@ -28,12 +28,7 @@ def init_session_state():
         "decision_description": "",
         "responsible_actor": "",
         # Stage 2
-        "institutional_constraints": "",
-        "governance_constraints": "",
-        "legal_constraints": "",
-        "temporal_constraints": "",
-        "resource_constraints": "",
-        "stage2_confirmed_blanks": False,
+        "constraints": {},
         # Stage 3
         "actions": ["", ""],
         # Stage 4
@@ -53,12 +48,7 @@ def init_session_state():
 def clear_downstream(from_stage: int):
     """Clear all data from stages after from_stage."""
     if from_stage < 2:
-        st.session_state.institutional_constraints = ""
-        st.session_state.governance_constraints = ""
-        st.session_state.legal_constraints = ""
-        st.session_state.temporal_constraints = ""
-        st.session_state.resource_constraints = ""
-        st.session_state.stage2_confirmed_blanks = False
+        st.session_state.constraints = {}
     if from_stage < 3:
         st.session_state.actions = ["", ""]
     if from_stage < 4:

@@ -64,15 +64,14 @@ def _compile_record():
     sections.append("=" * 60)
     sections.append("CONSTRAINT DECLARATION")
     sections.append("=" * 60)
-    constraint_fields = [
-        ("Institutional", st.session_state.institutional_constraints),
-        ("Governance", st.session_state.governance_constraints),
-        ("Legal", st.session_state.legal_constraints),
-        ("Temporal", st.session_state.temporal_constraints),
-        ("Resource", st.session_state.resource_constraints),
-    ]
-    for label, val in constraint_fields:
-        sections.append(f"{label}: {val if val.strip() else '(None declared)'}")
+    constraints = st.session_state.constraints
+    if constraints:
+        for key, data in constraints.items():
+            label = data.get("label", key)
+            spec = data.get("specification", "").strip()
+            sections.append(f"{label}: {spec if spec else '(No specification)'}")
+    else:
+        sections.append("(No constraints declared)")
 
     # ── Stage 3: Actions ──
     actions = _get_actions()
@@ -297,18 +296,15 @@ def _render_compiled_record(record_text: str):
 
     # Stage 2
     st.subheader("Constraint Declaration")
-    constraint_fields = [
-        ("Institutional", st.session_state.institutional_constraints),
-        ("Governance", st.session_state.governance_constraints),
-        ("Legal", st.session_state.legal_constraints),
-        ("Temporal", st.session_state.temporal_constraints),
-        ("Resource", st.session_state.resource_constraints),
-    ]
-    for label, val in constraint_fields:
-        if val.strip():
-            st.markdown(f"**{label}:** {val}")
-        else:
-            st.markdown(f"**{label}:** *(None declared)*")
+    constraints = st.session_state.constraints
+    if constraints:
+        for key, data in constraints.items():
+            label = data.get("label", key)
+            spec = data.get("specification", "").strip()
+            if spec:
+                st.markdown(f"**{label}:** {spec}")
+    else:
+        st.markdown("*(No constraints declared)*")
 
     # Stage 3
     st.subheader("Declared Actions")

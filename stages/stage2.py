@@ -4,16 +4,53 @@ import streamlit as st
 
 
 CONSTRAINT_CATEGORIES = [
-    ("institutional_constraints", "Institutional Constraints",
-     "Organizational structures, reporting hierarchies, decision-making norms."),
-    ("governance_constraints", "Governance Constraints",
-     "Oversight requirements, approval processes, accountability structures."),
-    ("legal_constraints", "Legal Constraints",
-     "Statutory, regulatory, or contractual obligations."),
-    ("temporal_constraints", "Temporal Constraints",
-     "Deadlines, time pressures, scheduling dependencies."),
-    ("resource_constraints", "Resource Constraints",
-     "Budget, staffing, technical capacity, or infrastructure limits."),
+    (
+        "authority",
+        "Authority",
+        "Does the decision-maker have unilateral authority to act, or does "
+        "this action require approval, cooperation, or authorization from "
+        "other parties (e.g., council, department heads, elected officials)?",
+    ),
+    (
+        "technical_architecture",
+        "Technical Architecture",
+        "Does the current system architecture limit what actions can be "
+        "performed? Are there technical dependencies, shared infrastructure, "
+        "or system configurations that prevent certain modifications?",
+    ),
+    (
+        "personnel_expertise",
+        "Available Personnel and Expertise",
+        "Are the personnel and expertise required to execute the actions "
+        "under consideration available at the time of this decision?",
+    ),
+    (
+        "budget_procurement",
+        "Budget and Procurement Authority",
+        "Does the decision-maker have access to funds or authority to commit "
+        "resources needed to execute the actions under consideration?",
+    ),
+    (
+        "legal_regulatory",
+        "Legal and Regulatory Requirements",
+        "Are there legal obligations, regulatory requirements, or "
+        "contractual terms that require or prohibit specific actions "
+        "(e.g., data retention laws, public records requirements, "
+        "vendor agreements)?",
+    ),
+    (
+        "time",
+        "Time",
+        "Does the decision context impose time constraints that limit "
+        "which actions can be initiated, completed, or deliberated "
+        "within the available window?",
+    ),
+    (
+        "vendor_contractual",
+        "Vendor and Contractual Dependencies",
+        "Does execution of any action depend on a vendor or third party "
+        "whose cooperation, authorization, or technical support is required?",
+    ),
 ]
 
 
@@ -30,65 +67,85 @@ def render_stage2():
     )
 
     st.markdown(
-        "Declare constraints across five categories. Empty categories are "
-        "permitted if intentionally left blank."
+        "Select only the constraints that apply to your specific decision "
+        "context — not all will be relevant to every decision."
     )
 
-    for key, label, help_text in CONSTRAINT_CATEGORIES:
-        st.session_state[key] = st.text_area(
-            label,
-            value=st.session_state[key],
-            placeholder=f"Describe any {label.lower()} affecting this decision...",
-            help=help_text,
-            key=f"input_{key}",
+    # Initialize constraint state if needed
+    if "constraints" not in st.session_state:
+        st.session_state.constraints = {}
+
+    for key, label, prompt in CONSTRAINT_CATEGORIES:
+        selected = st.checkbox(
+            f"**{label}**",
+            value=key in st.session_state.constraints,
+            key=f"chk_{key}",
         )
 
-    # Check which categories have content
-    filled_categories = []
-    empty_categories = []
-    for key, label, _ in CONSTRAINT_CATEGORIES:
-        if st.session_state[key].strip():
-            filled_categories.append(label)
+        if selected:
+            st.markdown(
+                f'<div style="font-size:0.9rem;color:var(--text-muted);'
+                f'margin:-0.5rem 0 0.25rem 1.75rem;">{prompt}</div>',
+                unsafe_allow_html=True,
+            )
+            spec = st.text_area(
+                f"Describe how this constraint applies to your decision",
+                value=st.session_state.constraints.get(key, {}).get(
+                    "specification", ""
+                ),
+                placeholder=f"Describe how {label.lower()} constrains this decision...",
+                key=f"spec_{key}",
+                label_visibility="collapsed",
+            )
+            st.session_state.constraints[key] = {
+                "label": label,
+                "specification": spec,
+            }
         else:
-            empty_categories.append(label)
+            # Remove if unchecked
+            st.session_state.constraints.pop(key, None)
 
-    has_content = len(filled_categories) > 0
+    # "Other" — always available
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
+    st.markdown(
+        "**Other** — Are there additional constraints not listed above "
+        "that shape what actions are feasible at this decision point?"
+    )
+    other_text = st.text_area(
+        "Other constraints",
+        value=st.session_state.constraints.get("other", {}).get(
+            "specification", ""
+        ),
+        placeholder="Describe any additional constraints...",
+        key="spec_other",
+        label_visibility="collapsed",
+    )
+    if other_text.strip():
+        st.session_state.constraints["other"] = {
+            "label": "Other",
+            "specification": other_text,
+        }
+    else:
+        st.session_state.constraints.pop("other", None)
+
+    # Validation: at least one constraint selected with specification
+    has_constraints = any(
+        v.get("specification", "").strip()
+        for v in st.session_state.constraints.values()
+    )
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if not has_content:
-        st.info(
-            "At least one constraint category must have content to proceed."
-        )
-        return
-
-    # If there are empty categories, require confirmation
-    if empty_categories:
-        st.markdown("**The following categories are empty:**")
-        for cat in empty_categories:
-            st.markdown(f"- {cat}")
-
-        st.session_state.stage2_confirmed_blanks = st.checkbox(
-            "I confirm these categories are intentionally left blank, "
-            "not overlooked.",
-            value=st.session_state.stage2_confirmed_blanks,
-            key="input_stage2_confirmed_blanks",
-        )
-
-        if not st.session_state.stage2_confirmed_blanks:
-            st.warning(
-                "Please confirm that empty categories are intentional "
-                "before proceeding."
+    if not has_constraints:
+        st.info("Select and describe at least one constraint to proceed.")
+    else:
+        if st.button(
+            "Proceed to Stage 3: Action-Set Declaration →",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state.current_stage = 3
+            st.session_state.max_unlocked_stage = max(
+                st.session_state.max_unlocked_stage, 3
             )
-            return
-
-    if st.button(
-        "Proceed to Stage 3: Action-Set Declaration →",
-        type="primary",
-        use_container_width=True,
-    ):
-        st.session_state.current_stage = 3
-        st.session_state.max_unlocked_stage = max(
-            st.session_state.max_unlocked_stage, 3
-        )
-        st.rerun()
+            st.rerun()
