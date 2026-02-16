@@ -54,7 +54,7 @@ def render_stage1():
         st.session_state.why_no_deferral.strip(),
     ])
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if not all_filled:
         st.info("Complete all four fields to proceed to Stage 2.")

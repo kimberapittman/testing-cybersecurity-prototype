@@ -169,7 +169,7 @@ def _render_within_action_matrix(action_idx, action_text):
 
 def _render_cross_action_comparison():
     """Display side-by-side specification text across actions per domain."""
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     st.markdown("## Cross-Action Comparison")
     st.markdown(
         "View-only display showing how different actions produce different "
@@ -260,7 +260,7 @@ def render_stage5():
     _render_cross_action_comparison()
 
     # Validation
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     complete = _check_stage5_complete()
 
     if not complete:

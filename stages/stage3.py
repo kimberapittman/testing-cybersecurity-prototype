@@ -55,7 +55,7 @@ def render_stage3():
     filled_actions = [a for a in st.session_state.actions if a.strip()]
     valid = len(filled_actions) >= 2
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if not valid:
         st.info("Declare at least two actions to proceed to Stage 4.")

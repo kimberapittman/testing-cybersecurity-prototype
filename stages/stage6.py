@@ -461,7 +461,7 @@ def render_stage6():
     _render_compiled_record(record_text)
 
     # Export
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     st.markdown("## Export")
 
     pdf_bytes = _generate_pdf(record_text)
@@ -474,7 +474,7 @@ def render_stage6():
         use_container_width=True,
     )
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     if st.button(
         "Start New Analysis",
         use_container_width=True,

@@ -55,7 +55,7 @@ def render_stage2():
 
     has_content = len(filled_categories) > 0
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if not has_content:
         st.info(

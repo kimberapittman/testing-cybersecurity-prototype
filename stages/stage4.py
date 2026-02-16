@@ -134,7 +134,7 @@ def _render_tier2():
         if action_key not in st.session_state.tier2_same_as:
             st.session_state.tier2_same_as[action_key] = {}
 
-        st.markdown("---")
+        st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
         st.markdown(f"### Action {action_idx + 1}")
         st.markdown(f"> {action_text}")
 
@@ -420,10 +420,10 @@ def render_stage4():
     if not tier1_complete:
         return
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     _render_tier2()
 
-    st.markdown("---")
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     tier2_complete = _check_tier2_complete()
 
