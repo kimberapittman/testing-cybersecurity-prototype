@@ -61,10 +61,7 @@ def clear_downstream(from_stage: int):
 
 
 def navigate_to(stage: int):
-    """Navigate to a stage, clearing downstream if going backward."""
-    if stage < st.session_state.current_stage:
-        clear_downstream(stage)
-        st.session_state.max_unlocked_stage = stage
+    """Navigate to a stage, preserving all entered data."""
     st.session_state.current_stage = stage
 
 
@@ -234,10 +231,6 @@ def render_navigation():
                     key=f"nav_back_{stage_num}",
                     use_container_width=True,
                 ):
-                    st.warning(
-                        f"Navigating back to Stage {stage_num} will clear all "
-                        f"data from subsequent stages."
-                    )
                     navigate_to(stage_num)
                     st.rerun()
 
