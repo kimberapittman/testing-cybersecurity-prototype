@@ -30,9 +30,7 @@ def _render_tier1():
     """Tier 1: Domain Identification — select applicable domains."""
     st.subheader("Tier 1: Domain Identification")
     st.markdown(
-        "Select all domains that apply to this decision point. "
-        "You must select at least one technical (NIST CSF) domain and "
-        "at least one ethical (PFCE) domain."
+        "Select all domains that apply to this decision point."
     )
 
     # NIST CSF domains
@@ -85,15 +83,7 @@ def _render_tier1():
 
     st.session_state.selected_pfce_domains = pfce_selected
 
-    has_nist = len(st.session_state.selected_nist_domains) > 0
-    has_pfce = len(st.session_state.selected_pfce_domains) > 0
-
-    if not has_nist:
-        st.warning("Select at least one NIST CSF technical domain.")
-    if not has_pfce:
-        st.warning("Select at least one PFCE ethical domain.")
-
-    return has_nist and has_pfce
+    return True
 
 
 def _get_actions():
