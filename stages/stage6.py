@@ -58,8 +58,6 @@ def _compile_record():
     sections.append("=" * 60)
     sections.append(f"Decision: {st.session_state.decision_description}")
     sections.append(f"Responsible Actor: {st.session_state.responsible_actor}")
-    sections.append(f"Scope of Authority: {st.session_state.scope_of_authority}")
-    sections.append(f"Why Deferral Not Feasible: {st.session_state.why_no_deferral}")
 
     # ── Stage 2: Constraints ──
     sections.append("")
@@ -294,13 +292,8 @@ def _render_compiled_record(record_text: str):
 
     # Stage 1
     st.subheader("Decision-Point Specification")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"**Decision:** {st.session_state.decision_description}")
-        st.markdown(f"**Responsible Actor:** {st.session_state.responsible_actor}")
-    with col2:
-        st.markdown(f"**Scope of Authority:** {st.session_state.scope_of_authority}")
-        st.markdown(f"**Why Deferral Not Feasible:** {st.session_state.why_no_deferral}")
+    st.markdown(f"**Decision:** {st.session_state.decision_description}")
+    st.markdown(f"**Responsible Actor:** {st.session_state.responsible_actor}")
 
     # Stage 2
     st.subheader("Constraint Declaration")

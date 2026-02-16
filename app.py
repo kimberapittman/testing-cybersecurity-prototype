@@ -27,8 +27,6 @@ def init_session_state():
         # Stage 1
         "decision_description": "",
         "responsible_actor": "",
-        "scope_of_authority": "",
-        "why_no_deferral": "",
         # Stage 2
         "institutional_constraints": "",
         "governance_constraints": "",
