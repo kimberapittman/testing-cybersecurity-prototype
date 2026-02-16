@@ -130,25 +130,6 @@ def render_sidebar():
             unsafe_allow_html=True,
         )
 
-        # Current stage indicator
-        stage_names = [
-            "Decision Point",
-            "Constraints",
-            "Actions",
-            "Considerations",
-            "Interactions",
-            "Documentation",
-        ]
-        current = st.session_state.current_stage
-        st.markdown(
-            f"**Current Stage:** {current} of 6 &mdash; "
-            f"{stage_names[current - 1]}",
-            unsafe_allow_html=True,
-        )
-        st.progress(current / 6.0)
-
-        _sidebar_divider()
-
         # About section
         st.markdown(
             _html_block(
