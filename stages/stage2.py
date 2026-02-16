@@ -128,24 +128,15 @@ def render_stage2():
     else:
         st.session_state.constraints.pop("other", None)
 
-    # Validation: at least one constraint selected with specification
-    has_constraints = any(
-        v.get("specification", "").strip()
-        for v in st.session_state.constraints.values()
-    )
-
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if not has_constraints:
-        st.info("Select and describe at least one constraint to proceed.")
-    else:
-        if st.button(
-            "Proceed to Stage 3: Action-Set Declaration →",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state.current_stage = 3
-            st.session_state.max_unlocked_stage = max(
-                st.session_state.max_unlocked_stage, 3
-            )
-            st.rerun()
+    if st.button(
+        "Proceed to Stage 3: Action-Set Declaration →",
+        type="primary",
+        use_container_width=True,
+    ):
+        st.session_state.current_stage = 3
+        st.session_state.max_unlocked_stage = max(
+            st.session_state.max_unlocked_stage, 3
+        )
+        st.rerun()
