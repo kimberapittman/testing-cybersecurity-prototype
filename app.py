@@ -1,5 +1,5 @@
 """
-Cybersecurity Decision-Support Prototype
+Cybersecurity Decision-Point Analysis Tool
 Linear stage-based progression through six analytical stages.
 """
 
@@ -273,7 +273,7 @@ def render_navigation():
 
 def main():
     st.set_page_config(
-        page_title="Cybersecurity Decision-Support Prototype",
+        page_title="Cybersecurity Decision-Point Analysis Tool",
         page_icon="🛡️",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -287,7 +287,7 @@ def main():
     # Main header
     st.markdown(
         "<div style='text-align:center;'>"
-        "<h1>Cybersecurity Decision-Support Prototype</h1>"
+        "<h1>Cybersecurity Decision-Point Analysis Tool</h1>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -315,8 +315,7 @@ def main():
     # Session notice
     render_divider()
     st.caption(
-        "No persistent storage. All data exists only for the duration of "
-        "this session. Use Stage 6 export to preserve your analysis."
+        "This tool is designed for research and demonstration purposes"
     )
 
 
