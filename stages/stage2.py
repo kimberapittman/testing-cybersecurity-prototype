@@ -76,6 +76,11 @@ def render_stage2():
         st.session_state.constraints = {}
 
     for key, label, prompt in CONSTRAINT_CATEGORIES:
+        st.markdown(
+            f'<div style="font-size:0.9rem;color:var(--text-muted);'
+            f'margin:0.5rem 0 0.25rem 0;">{prompt}</div>',
+            unsafe_allow_html=True,
+        )
         selected = st.checkbox(
             f"**{label}**",
             value=key in st.session_state.constraints,
@@ -83,11 +88,6 @@ def render_stage2():
         )
 
         if selected:
-            st.markdown(
-                f'<div style="font-size:0.9rem;color:var(--text-muted);'
-                f'margin:-0.5rem 0 0.25rem 1.75rem;">{prompt}</div>',
-                unsafe_allow_html=True,
-            )
             spec = st.text_area(
                 f"Describe how this constraint applies to your decision",
                 value=st.session_state.constraints.get(key, {}).get(
