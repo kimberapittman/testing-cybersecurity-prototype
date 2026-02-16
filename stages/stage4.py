@@ -6,23 +6,11 @@ from domain_data import NIST_DOMAINS, PFCE_DOMAINS, RESPONSE_PATTERNS
 
 def _render_domain_card(domain_key: str, prompt: str, description: str,
                         selected: bool, card_key: str) -> bool:
-    """Render a selectable domain card. Returns the new selected state."""
-    css_class = "domain-card-selected" if selected else "domain-card"
-    checkmark = '<span class="checkmark">✓</span>' if selected else ""
-
-    st.markdown(
-        f'<div class="{css_class}">'
-        f'{checkmark}'
-        f'<div class="domain-card-title">{domain_key}</div>'
-        f'<div class="domain-card-desc">{prompt}</div>'
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    """Render a selectable domain as an inline checkbox. Returns the new selected state."""
     return st.checkbox(
-        f"Select {domain_key}",
+        f"**{domain_key}** :gray[ — {prompt}]",
         value=selected,
         key=card_key,
-        label_visibility="collapsed",
     )
 
 
