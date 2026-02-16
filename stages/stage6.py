@@ -432,16 +432,25 @@ def render_stage6():
     st.header("Stage 6: Documentation")
     st.markdown(
         '<div class="stage-purpose">'
-        "<strong>Purpose:</strong> Review the complete analytic record and "
-        "export as PDF. No new input is required at this stage."
+        "<strong>Purpose:</strong> Identify the responsible actor, review the "
+        "complete analytic record, and export as PDF."
         "</div>",
         unsafe_allow_html=True,
     )
 
-    st.warning(
-        "This is a review-only stage. The record below was compiled from "
-        "all prior stages. Export as PDF to preserve your analysis."
+    # Responsible actor input
+    st.subheader("Responsible Actor")
+    st.session_state.responsible_actor = st.text_area(
+        "Responsible actor",
+        value=st.session_state.responsible_actor,
+        placeholder="Who has authority to make this decision?",
+        help="Identify the person or role with decision authority.",
+        key="input_responsible_actor",
     )
+
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
+
+    st.markdown("## Analytic Record")
 
     # Compile record
     record_text = _compile_record()
