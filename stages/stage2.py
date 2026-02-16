@@ -76,13 +76,8 @@ def render_stage2():
         st.session_state.constraints = {}
 
     for key, label, prompt in CONSTRAINT_CATEGORIES:
-        st.markdown(
-            f'<div style="font-size:0.9rem;color:var(--text-muted);'
-            f'margin:0.5rem 0 0.25rem 0;">{prompt}</div>',
-            unsafe_allow_html=True,
-        )
         selected = st.checkbox(
-            f"**{label}**",
+            f"**{label}** — {prompt}",
             value=key in st.session_state.constraints,
             key=f"chk_{key}",
         )
