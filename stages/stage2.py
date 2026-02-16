@@ -30,9 +30,8 @@ def render_stage2():
     )
 
     st.markdown(
-        "Declare constraints across five categories. At least one category "
-        "must have content. Empty categories are permitted if intentionally "
-        "left blank."
+        "Declare constraints across five categories. Empty categories are "
+        "permitted if intentionally left blank."
     )
 
     for key, label, help_text in CONSTRAINT_CATEGORIES:
