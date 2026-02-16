@@ -77,7 +77,7 @@ def render_stage2():
 
     for key, label, prompt in CONSTRAINT_CATEGORIES:
         selected = st.checkbox(
-            f"**{label}** — {prompt}",
+            f"**{label}** :gray[ — {prompt}]",
             value=key in st.session_state.constraints,
             key=f"chk_{key}",
         )
@@ -101,10 +101,9 @@ def render_stage2():
             st.session_state.constraints.pop(key, None)
 
     # "Other" — always available
-    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     st.markdown(
-        "**Other** — Are there additional constraints not listed above "
-        "that shape what actions are feasible at this decision point?"
+        "**Other** :gray[ — Are there additional constraints not listed above "
+        "that shape what actions are feasible at this decision point?]"
     )
     other_text = st.text_area(
         "Other constraints",
