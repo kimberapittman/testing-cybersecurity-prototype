@@ -312,11 +312,6 @@ def main():
 
     render_navigation()
 
-    # Session notice
-    render_divider()
-    st.caption(
-        "This tool is designed for research and demonstration purposes"
-    )
 
 
 if __name__ == "__main__":
