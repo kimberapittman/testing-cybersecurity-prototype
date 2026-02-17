@@ -156,55 +156,6 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
             f"{domain_key}: {domain_info['description']}",
             expanded=True,
         ):
-            # "Same as" option for second action onward
-            if action_idx > 0:
-                prior_actions = [
-                    (i, text)
-                    for i, text in all_actions
-                    if i < action_idx
-                ]
-                if prior_actions:
-                    same_as_options = ["Specify fresh"] + [
-                        f"Same as Action {i + 1}" for i, _ in prior_actions
-                    ]
-                    same_key = f"same_as_{action_key}_{domain_key}_{action_idx}"
-
-                    current_same = st.session_state.tier2_same_as.get(
-                        action_key, {}
-                    ).get(domain_key)
-                    default_idx = 0
-                    if current_same is not None:
-                        for j, (pi, _) in enumerate(prior_actions):
-                            if pi == current_same:
-                                default_idx = j + 1
-                                break
-
-                    choice = st.selectbox(
-                        f"Copy from prior action?",
-                        same_as_options,
-                        index=default_idx,
-                        key=same_key,
-                    )
-
-                    if choice != "Specify fresh":
-                        source_idx = prior_actions[
-                            same_as_options.index(choice) - 1
-                        ][0]
-                        if action_key not in st.session_state.tier2_same_as:
-                            st.session_state.tier2_same_as[action_key] = {}
-                        st.session_state.tier2_same_as[action_key][
-                            domain_key
-                        ] = source_idx
-                        st.info(
-                            f"Using responses from Action {source_idx + 1} "
-                            f"for {domain_key}."
-                        )
-                        continue
-                    else:
-                        if action_key in st.session_state.tier2_same_as:
-                            st.session_state.tier2_same_as[action_key].pop(
-                                domain_key, None
-                            )
 
             # Initialize response storage for this domain
             if domain_key not in st.session_state.tier2_responses.get(
