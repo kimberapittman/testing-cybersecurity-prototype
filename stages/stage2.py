@@ -100,21 +100,24 @@ def render_stage2():
             # Remove if unchecked
             st.session_state.constraints.pop(key, None)
 
-    # "Other" — always available
-    st.markdown(
+    # "Other" — selectable like the rest
+    other_selected = st.checkbox(
         "**Other** :gray[ — Are there additional constraints not listed above "
-        "that shape what actions are feasible at this decision point?]"
+        "that shape what actions are feasible at this decision point?]",
+        value="other" in st.session_state.constraints,
+        key="chk_other",
     )
-    other_text = st.text_area(
-        "Other constraints",
-        value=st.session_state.constraints.get("other", {}).get(
-            "specification", ""
-        ),
-        placeholder="Describe any additional constraints...",
-        key="spec_other",
-        label_visibility="collapsed",
-    )
-    if other_text.strip():
+
+    if other_selected:
+        other_text = st.text_area(
+            "Other constraints",
+            value=st.session_state.constraints.get("other", {}).get(
+                "specification", ""
+            ),
+            placeholder="Describe any additional constraints...",
+            key="spec_other",
+            label_visibility="collapsed",
+        )
         st.session_state.constraints["other"] = {
             "label": "Other",
             "specification": other_text,
