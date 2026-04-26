@@ -20,7 +20,7 @@ CONSTRAINT_CATEGORIES = [
     ),
     (
         "personnel_expertise",
-        "Available Personnel and Expertise",
+        "Available Resources — staffing, funding, and expertise",
         "Are the personnel and expertise required to execute the actions "
         "under consideration available at the time of this decision?",
     ),
