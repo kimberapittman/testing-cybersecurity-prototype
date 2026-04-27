@@ -15,7 +15,6 @@ from reportlab.platypus import (
 from domain_data import (
     NIST_DOMAINS,
     PFCE_DOMAINS,
-    RELATIONSHIP_COLORS,
 )
 
 
@@ -97,94 +96,59 @@ def _compile_record():
         f"PFCE Domains: {', '.join(st.session_state.selected_pfce_domains)}"
     )
 
-    # ── Stage 4: Technical Considerations ──
+    # ── Stage 5: Consolidated Consideration Profiles ──
     sections.append("")
     sections.append("=" * 60)
-    sections.append("ELICITED TECHNICAL CONSIDERATIONS BY ACTION")
+    sections.append("CONSOLIDATED CONSIDERATION PROFILES")
     sections.append("=" * 60)
     for action_idx, action_text in actions:
         sections.append(f"\nAction {action_idx + 1}: {action_text}")
         sections.append("-" * 40)
+
+        sections.append("  Technical Considerations (NIST CSF):")
         for domain_key in st.session_state.selected_nist_domains:
-            same_as = st.session_state.tier2_same_as.get(
-                str(action_idx), {}
-            ).get(domain_key)
-            if same_as is not None:
-                sections.append(
-                    f"  {domain_key}: Same as Action {same_as + 1}"
-                )
-            else:
-                sections.append(f"  {domain_key}:")
-                sections.append(
-                    _get_response_text(action_idx, domain_key, "nist")
-                )
+            sections.append(f"    {domain_key}:")
+            sections.append(
+                _get_response_text(action_idx, domain_key, "nist")
+            )
+        if not st.session_state.selected_nist_domains:
+            sections.append("    (No technical domains activated)")
 
-    # ── Stage 4: Ethical Considerations ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("ELICITED ETHICAL CONSIDERATIONS BY ACTION")
-    sections.append("=" * 60)
-    for action_idx, action_text in actions:
-        sections.append(f"\nAction {action_idx + 1}: {action_text}")
-        sections.append("-" * 40)
+        sections.append("  Ethical Considerations (PFCE):")
         for domain_key in st.session_state.selected_pfce_domains:
-            same_as = st.session_state.tier2_same_as.get(
-                str(action_idx), {}
-            ).get(domain_key)
-            if same_as is not None:
-                sections.append(
-                    f"  {domain_key}: Same as Action {same_as + 1}"
-                )
-            else:
-                sections.append(f"  {domain_key}:")
-                sections.append(
-                    _get_response_text(action_idx, domain_key, "pfce")
-                )
-
-    # ── Stage 5: Interaction Examination ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("INTERACTION EXAMINATION RESULTS BY ACTION")
-    sections.append("=" * 60)
-    for action_idx, action_text in actions:
-        action_key = str(action_idx)
-        matrix = st.session_state.interaction_matrix.get(action_key, {})
-        sections.append(f"\nAction {action_idx + 1}: {action_text}")
-        sections.append("-" * 40)
-
-        for tech_domain in st.session_state.selected_nist_domains:
-            for eth_domain in st.session_state.selected_pfce_domains:
-                cell_key = f"{tech_domain}|{eth_domain}"
-                cell = matrix.get(cell_key, {})
-                rel = cell.get("relationship", "Not specified")
-                sections.append(f"  {tech_domain} x {eth_domain}: {rel}")
-
-                if cell.get("explanation", "").strip():
-                    sections.append(
-                        f"    Explanation: {cell['explanation']}"
-                    )
-                if rel in ("Tension", "Conflict"):
-                    sections.append(
-                        f"    At stake: {cell.get('at_stake', '')}"
-                    )
+            sections.append(f"    {domain_key}:")
+            sections.append(
+                _get_response_text(action_idx, domain_key, "pfce")
+            )
+        if not st.session_state.selected_pfce_domains:
+            sections.append("    (No ethical domains activated)")
 
     # ── Stage 5: Cross-Action Comparison ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("CROSS-ACTION COMPARISON SUMMARY")
-    sections.append("=" * 60)
-    all_domains = (
-        [(d, "nist") for d in st.session_state.selected_nist_domains]
-        + [(d, "pfce") for d in st.session_state.selected_pfce_domains]
-    )
-    for domain_key, domain_type in all_domains:
-        framework = "NIST CSF" if domain_type == "nist" else "PFCE"
-        sections.append(f"\n{domain_key} ({framework}):")
-        for action_idx, action_text in actions:
-            sections.append(f"  Action {action_idx + 1}:")
-            sections.append(
-                _get_response_text(action_idx, domain_key, domain_type)
-            )
+    if len(actions) >= 2:
+        sections.append("")
+        sections.append("=" * 60)
+        sections.append("CROSS-ACTION COMPARISON")
+        sections.append("=" * 60)
+
+        if st.session_state.selected_nist_domains:
+            sections.append("\n  Technical Considerations (NIST CSF):")
+            for domain_key in st.session_state.selected_nist_domains:
+                sections.append(f"\n    {domain_key}:")
+                for action_idx, action_text in actions:
+                    sections.append(f"      Action {action_idx + 1}:")
+                    sections.append(
+                        _get_response_text(action_idx, domain_key, "nist")
+                    )
+
+        if st.session_state.selected_pfce_domains:
+            sections.append("\n  Ethical Considerations (PFCE):")
+            for domain_key in st.session_state.selected_pfce_domains:
+                sections.append(f"\n    {domain_key}:")
+                for action_idx, action_text in actions:
+                    sections.append(f"      Action {action_idx + 1}:")
+                    sections.append(
+                        _get_response_text(action_idx, domain_key, "pfce")
+                    )
 
     return "\n".join(sections)
 
@@ -329,8 +293,8 @@ def _render_compiled_record(record_text: str):
         for d in st.session_state.selected_pfce_domains:
             st.markdown(f"- {d}")
 
-    # Stage 4 — Considerations by action
-    st.subheader("Elicited Considerations by Action")
+    # Stage 5 — Consolidated Consideration Profiles
+    st.subheader("Consolidated Consideration Profiles")
     for action_idx, action_text in actions:
         with st.expander(
             f"Action {action_idx + 1}: {action_text[:80]}...", expanded=True
@@ -342,85 +306,55 @@ def _render_compiled_record(record_text: str):
                     unsafe_allow_html=True,
                 )
                 for domain_key in st.session_state.selected_nist_domains:
-                    same_as = st.session_state.tier2_same_as.get(
-                        str(action_idx), {}
-                    ).get(domain_key)
-                    if same_as is not None:
-                        st.markdown(
-                            f"**{domain_key}:** *Same as Action {same_as + 1}*"
-                        )
-                    else:
-                        st.markdown(f"**{domain_key}:**")
-                        text = _get_response_text(action_idx, domain_key, "nist")
-                        st.markdown(text)
+                    st.markdown(f"**{domain_key}:**")
+                    text = _get_response_text(action_idx, domain_key, "nist")
+                    st.markdown(text)
+                if not st.session_state.selected_nist_domains:
+                    st.markdown("*(No technical domains activated)*")
             with col2:
                 st.markdown(
                     '<div class="section-header-eth">Ethical (PFCE)</div>',
                     unsafe_allow_html=True,
                 )
                 for domain_key in st.session_state.selected_pfce_domains:
-                    same_as = st.session_state.tier2_same_as.get(
-                        str(action_idx), {}
-                    ).get(domain_key)
-                    if same_as is not None:
-                        st.markdown(
-                            f"**{domain_key}:** *Same as Action {same_as + 1}*"
-                        )
-                    else:
-                        st.markdown(f"**{domain_key}:**")
-                        text = _get_response_text(action_idx, domain_key, "pfce")
-                        st.markdown(text)
-
-    # Stage 5 — Interaction Results
-    st.subheader("Interaction Examination Results")
-    for action_idx, action_text in actions:
-        action_key = str(action_idx)
-        matrix = st.session_state.interaction_matrix.get(action_key, {})
-        with st.expander(
-            f"Action {action_idx + 1}: {action_text[:80]}...", expanded=True
-        ):
-            for tech_domain in st.session_state.selected_nist_domains:
-                for eth_domain in st.session_state.selected_pfce_domains:
-                    cell_key = f"{tech_domain}|{eth_domain}"
-                    cell = matrix.get(cell_key, {})
-                    rel = cell.get("relationship", "Not specified")
-
-                    css_class = RELATIONSHIP_COLORS.get(rel, "rel-na")
-
-                    content = f"<strong>{tech_domain} x {eth_domain}:</strong> {rel}"
-                    if cell.get("explanation", "").strip():
-                        content += f"<br><em>Explanation:</em> {cell['explanation']}"
-                    if rel in ("Tension", "Conflict"):
-                        content += (
-                            f"<br><em>At stake:</em> {cell.get('at_stake', '')}"
-                        )
-
-                    st.markdown(
-                        f'<div class="{css_class}">{content}</div>',
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f"**{domain_key}:**")
+                    text = _get_response_text(action_idx, domain_key, "pfce")
+                    st.markdown(text)
+                if not st.session_state.selected_pfce_domains:
+                    st.markdown("*(No ethical domains activated)*")
 
     # Cross-action comparison
-    st.subheader("Cross-Action Comparison Summary")
-    all_domains = (
-        [(d, "nist") for d in st.session_state.selected_nist_domains]
-        + [(d, "pfce") for d in st.session_state.selected_pfce_domains]
-    )
-    for domain_key, domain_type in all_domains:
-        framework = "NIST CSF" if domain_type == "nist" else "PFCE"
-        header_class = (
-            "section-header-tech" if domain_type == "nist" else "section-header-eth"
-        )
-        st.markdown(
-            f'<div class="{header_class}">{domain_key} ({framework})</div>',
-            unsafe_allow_html=True,
-        )
-        cols = st.columns(len(actions))
-        for col, (action_idx, action_text) in zip(cols, actions):
-            with col:
-                st.markdown(f"**Action {action_idx + 1}**")
-                text = _get_response_text(action_idx, domain_key, domain_type)
-                st.markdown(text)
+    if len(actions) >= 2:
+        st.subheader("Cross-Action Comparison")
+        if st.session_state.selected_nist_domains:
+            st.markdown(
+                '<div class="section-header-tech">Technical (NIST CSF)</div>',
+                unsafe_allow_html=True,
+            )
+            for domain_key in st.session_state.selected_nist_domains:
+                st.markdown(f"**{domain_key}**")
+                cols = st.columns(len(actions))
+                for col, (action_idx, action_text) in zip(cols, actions):
+                    with col:
+                        st.markdown(f"*Action {action_idx + 1}*")
+                        st.markdown(
+                            _get_response_text(action_idx, domain_key, "nist")
+                        )
+
+        if st.session_state.selected_pfce_domains:
+            st.markdown(
+                '<div class="section-header-eth">Ethical (PFCE)</div>',
+                unsafe_allow_html=True,
+            )
+            for domain_key in st.session_state.selected_pfce_domains:
+                st.markdown(f"**{domain_key}**")
+                cols = st.columns(len(actions))
+                for col, (action_idx, action_text) in zip(cols, actions):
+                    with col:
+                        st.markdown(f"*Action {action_idx + 1}*")
+                        st.markdown(
+                            _get_response_text(action_idx, domain_key, "pfce")
+                        )
 
 
 def render_stage6():

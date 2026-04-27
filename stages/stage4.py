@@ -250,7 +250,7 @@ def render_stage4():
     if tier2_complete:
         st.success("Ready to proceed to examination.")
         if st.button(
-            "Proceed to Stage 5: Interaction Examination →",
+            "Proceed to Stage 5: Consolidated Visibility →",
             type="primary",
             use_container_width=True,
         ):

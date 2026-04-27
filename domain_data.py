@@ -311,30 +311,3 @@ PFCE_DOMAINS = {
         ],
     },
 }
-
-# ── Relationship Types for Stage 5 ──
-
-RELATIONSHIP_TYPES = [
-    "",
-    "Alignment",
-    "Tension",
-    "Conflict",
-    "Independence",
-    "Not applicable",
-]
-
-RELATIONSHIP_COLORS = {
-    "Alignment": "rel-alignment",
-    "Tension": "rel-tension",
-    "Conflict": "rel-conflict",
-    "Independence": "rel-independence",
-    "Not applicable": "rel-na",
-}
-
-RELATIONSHIP_DESCRIPTIONS = {
-    "Alignment": "Considerations reinforce the same course of action",
-    "Tension": "Considerations pull in different directions but remain partially satisfiable",
-    "Conflict": "Considerations are directly incompatible; satisfying one forecloses the other",
-    "Independence": "Both relevant but do not meaningfully interact",
-    "Not applicable": "No meaningful relationship to examine",
-}

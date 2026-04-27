@@ -37,8 +37,6 @@ def init_session_state():
         # Stage 4 Tier 2
         "tier2_responses": {},
         "tier2_same_as": {},
-        # Stage 5
-        "interaction_matrix": {},
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -56,8 +54,6 @@ def clear_downstream(from_stage: int):
         st.session_state.selected_pfce_domains = []
         st.session_state.tier2_responses = {}
         st.session_state.tier2_same_as = {}
-    if from_stage < 5:
-        st.session_state.interaction_matrix = {}
 
 
 def navigate_to(stage: int):
@@ -89,7 +85,7 @@ def render_progress_bar():
         "Constraints",
         "Actions",
         "Considerations",
-        "Interactions",
+        "Visibility",
         "Documentation",
     ]
     cols = st.columns(6)
@@ -221,7 +217,7 @@ def render_navigation():
             "Stage 2: Constraints",
             "Stage 3: Actions",
             "Stage 4: Considerations",
-            "Stage 5: Interactions",
+            "Stage 5: Visibility",
         ]
         for i, col in enumerate(cols):
             stage_num = i + 1
