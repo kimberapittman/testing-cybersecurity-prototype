@@ -13,6 +13,12 @@ headless = true
 enableCORS = false
 enableXsrfProtection = false
 enableWebsocketCompression = false
+maxMessageSize = 200
+enableStaticServing = false
+disconnectedSessionTTL = 7200
+
+[runner]
+fastReruns = true
 
 [browser]
 gatherUsageStats = false
