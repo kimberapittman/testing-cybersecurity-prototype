@@ -30,7 +30,7 @@ def init_session_state():
         # Stage 2
         "constraints": {},
         # Stage 3
-        "actions": ["", ""],
+        "actions": [""],
         # Stage 4
         "selected_nist_domains": [],
         "selected_pfce_domains": [],

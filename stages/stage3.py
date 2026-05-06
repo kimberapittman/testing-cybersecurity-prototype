@@ -16,9 +16,8 @@ def render_stage3():
     )
 
     st.markdown(
-        "Declare at least two feasible actions. Each action should describe "
-        "an operational commitment — what you would actually do — rather than "
-        "implementation steps."
+        "Each action should describe an operational commitment — what you "
+        "would actually do — rather than implementation steps."
     )
 
     actions = st.session_state.actions
@@ -36,8 +35,7 @@ def render_stage3():
             )
             updated_actions.append(val)
         with col2:
-            # Allow removal of actions beyond the minimum two
-            if len(actions) > 2 and i >= 2:
+            if len(actions) > 1:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("✕", key=f"remove_action_{i}", help="Remove this action"):
                     actions.pop(i)
@@ -51,14 +49,12 @@ def render_stage3():
         st.session_state.actions.append("")
         st.rerun()
 
-    # Validation: at least two actions with content
     filled_actions = [a for a in st.session_state.actions if a.strip()]
-    valid = len(filled_actions) >= 2
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if not valid:
-        st.info("Declare at least two actions to proceed to Stage 4.")
+    if not filled_actions:
+        st.info("Declare at least one action to proceed to Stage 4.")
     else:
         st.success(f"{len(filled_actions)} action(s) declared.")
         if st.button(
