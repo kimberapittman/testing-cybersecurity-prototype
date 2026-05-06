@@ -233,7 +233,7 @@ def render_navigation():
 
 def main():
     st.set_page_config(
-        page_title="Cybersecurity Decision-Point Analysis Tool",
+        page_title="Cybersecurity Decision-Point Elicitation and Examination Tool",
         page_icon="🛡️",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -247,7 +247,7 @@ def main():
     # Main header
     st.markdown(
         "<div style='text-align:center;'>"
-        "<h1 style='color:#60a5fa;'>Cybersecurity Decision-Point Analysis Tool</h1>"
+        "<h1 style='color:#60a5fa;'>Cybersecurity Decision-Point Elicitation and Examination Tool</h1>"
         "</div>",
         unsafe_allow_html=True,
     )
