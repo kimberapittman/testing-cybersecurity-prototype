@@ -85,7 +85,7 @@ def render_progress_bar():
         "Constraints",
         "Actions",
         "Considerations",
-        "Visibility",
+        "Review",
         "Documentation",
     ]
     cols = st.columns(6)
@@ -217,7 +217,7 @@ def render_navigation():
             "Stage 2: Constraints",
             "Stage 3: Actions",
             "Stage 4: Considerations",
-            "Stage 5: Visibility",
+            "Stage 5: Review",
         ]
         for i, col in enumerate(cols):
             stage_num = i + 1

@@ -163,35 +163,6 @@ NIST_DOMAINS = {
 # ── PFCE Domains ──
 
 PFCE_DOMAINS = {
-    "NON-MALEFICENCE": {
-        "prompt": (
-            "This decision could create harm, increase exposure to harm, or "
-            "make conditions worse for people, even indirectly."
-        ),
-        "description": (
-            "Avoidable harm to people, institutions, or society is minimized."
-        ),
-        "tier2_prompt": (
-            "What harm could this action create, increase, or enable?"
-        ),
-        "guidance": [
-            "Who may be harmed by this action?",
-            "Through what mechanism does this action produce or enable harm?",
-            "How severe could this harm be, and is it reversible?",
-            "Could this action cause harm that extends beyond the immediate decision context?",
-        ],
-        "patterns": [
-            "Service disruption affecting residents",
-            "Personal data exposure or compromise",
-            "Public safety or emergency service disruption",
-            "Harm to employees involved in response or affected operations",
-            "Delayed response allowing harm to continue or spread",
-            "Resource diversion from other critical functions",
-            "Harm extending beyond the immediate decision context",
-            "Disproportionate impact on populations with limited alternatives",
-            "Erosion of public trust in municipal institutions",
-        ],
-    },
     "BENEFICENCE": {
         "prompt": (
             "This decision could meaningfully improve safety, well-being, or "
@@ -221,6 +192,35 @@ PFCE_DOMAINS = {
             "Loss of opportunity to contain or mitigate an active threat if not taken",
             "Missed opportunity to establish governance precedent if not taken",
             "Erosion of public trust or institutional credibility if not taken",
+        ],
+    },
+    "NON-MALEFICENCE": {
+        "prompt": (
+            "This decision could create harm, increase exposure to harm, or "
+            "make conditions worse for people, even indirectly."
+        ),
+        "description": (
+            "Avoidable harm to people, institutions, or society is minimized."
+        ),
+        "tier2_prompt": (
+            "What harm could this action create, increase, or enable?"
+        ),
+        "guidance": [
+            "Who may be harmed by this action?",
+            "Through what mechanism does this action produce or enable harm?",
+            "How severe could this harm be, and is it reversible?",
+            "Could this action cause harm that extends beyond the immediate decision context?",
+        ],
+        "patterns": [
+            "Service disruption affecting residents",
+            "Personal data exposure or compromise",
+            "Public safety or emergency service disruption",
+            "Harm to employees involved in response or affected operations",
+            "Delayed response allowing harm to continue or spread",
+            "Resource diversion from other critical functions",
+            "Harm extending beyond the immediate decision context",
+            "Disproportionate impact on populations with limited alternatives",
+            "Erosion of public trust in municipal institutions",
         ],
     },
     "AUTONOMY": {

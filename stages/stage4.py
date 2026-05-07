@@ -21,32 +21,6 @@ def _render_tier1():
         "Select all domains that apply to this decision point."
     )
 
-    # NIST CSF domains
-    st.markdown(
-        '<div class="section-header-tech">NIST CSF Functions — '
-        "Technical Domains</div>",
-        unsafe_allow_html=True,
-    )
-
-    nist_selected = list(st.session_state.selected_nist_domains)
-    for domain_key, domain_info in NIST_DOMAINS.items():
-        is_selected = domain_key in nist_selected
-        new_state = _render_domain_card(
-            domain_key,
-            domain_info["prompt"],
-            domain_info["description"],
-            is_selected,
-            f"tier1_nist_{domain_key}",
-        )
-        if new_state and domain_key not in nist_selected:
-            nist_selected.append(domain_key)
-        elif not new_state and domain_key in nist_selected:
-            nist_selected.remove(domain_key)
-
-    st.session_state.selected_nist_domains = nist_selected
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
     # PFCE domains
     st.markdown(
         '<div class="section-header-eth">PFCE Principles — '
@@ -70,6 +44,32 @@ def _render_tier1():
             pfce_selected.remove(domain_key)
 
     st.session_state.selected_pfce_domains = pfce_selected
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # NIST CSF domains
+    st.markdown(
+        '<div class="section-header-tech">NIST CSF Functions — '
+        "Technical Domains</div>",
+        unsafe_allow_html=True,
+    )
+
+    nist_selected = list(st.session_state.selected_nist_domains)
+    for domain_key, domain_info in NIST_DOMAINS.items():
+        is_selected = domain_key in nist_selected
+        new_state = _render_domain_card(
+            domain_key,
+            domain_info["prompt"],
+            domain_info["description"],
+            is_selected,
+            f"tier1_nist_{domain_key}",
+        )
+        if new_state and domain_key not in nist_selected:
+            nist_selected.append(domain_key)
+        elif not new_state and domain_key in nist_selected:
+            nist_selected.remove(domain_key)
+
+    st.session_state.selected_nist_domains = nist_selected
 
     return True
 
@@ -125,16 +125,6 @@ def _render_tier2():
             (d, t) for d, t in all_domains if t == "pfce"
         ]
 
-        if tech_domains:
-            st.markdown(
-                '<div class="section-header-tech">'
-                "Technical Considerations (NIST CSF)</div>",
-                unsafe_allow_html=True,
-            )
-            _render_domain_prompts(
-                action_idx, action_key, tech_domains, actions, NIST_DOMAINS
-            )
-
         if eth_domains:
             st.markdown(
                 '<div class="section-header-eth">'
@@ -143,6 +133,16 @@ def _render_tier2():
             )
             _render_domain_prompts(
                 action_idx, action_key, eth_domains, actions, PFCE_DOMAINS
+            )
+
+        if tech_domains:
+            st.markdown(
+                '<div class="section-header-tech">'
+                "Technical Considerations (NIST CSF)</div>",
+                unsafe_allow_html=True,
+            )
+            _render_domain_prompts(
+                action_idx, action_key, tech_domains, actions, NIST_DOMAINS
             )
 
 
@@ -250,7 +250,7 @@ def render_stage4():
     if tier2_complete:
         st.success("Ready to proceed to examination.")
         if st.button(
-            "Proceed to Stage 5: Consolidated Visibility →",
+            "Proceed to Stage 5: Consideration Review →",
             type="primary",
             use_container_width=True,
         ):

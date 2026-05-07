@@ -1,11 +1,13 @@
-"""Stage 5: Consolidated Visibility — read-only review of elicited considerations."""
+"""Stage 5: Consideration Review — display-only review of elicited considerations."""
 
 import streamlit as st
 from domain_data import NIST_DOMAINS, PFCE_DOMAINS
 
+PFCE_DISPLAY_ORDER = ["BENEFICENCE", "NON-MALEFICENCE", "AUTONOMY", "JUSTICE", "EXPLICABILITY"]
+NIST_DISPLAY_ORDER = ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"]
+
 
 def _get_actions():
-    """Return list of non-empty actions with their indices."""
     return [
         (i, action)
         for i, action in enumerate(st.session_state.actions)
@@ -13,8 +15,11 @@ def _get_actions():
     ]
 
 
-def _get_response_text(action_idx, domain_key, domain_type):
-    """Get selected patterns for an action+domain pair, formatted as a list."""
+def _get_consideration_text(action_idx, domain_key):
+    """Get the stored consideration text for an action+domain pair.
+
+    Returns None if the domain was marked N/A or has no text.
+    """
     action_key = str(action_idx)
 
     same_as = st.session_state.tier2_same_as.get(action_key, {}).get(domain_key)
@@ -27,102 +32,73 @@ def _get_response_text(action_idx, domain_key, domain_type):
 
     composite = responses.get("0", "").strip()
 
-    if composite == "N/A":
-        return "N/A"
-    elif composite:
-        patterns = [p.strip() for p in composite.split("|") if p.strip()]
-        return "\n".join(f"- {p}" for p in patterns)
-    else:
-        return "*No considerations selected.*"
+    if not composite or composite == "N/A":
+        return None
+
+    patterns = [p.strip() for p in composite.split("|") if p.strip()]
+    return "\n".join(f"- {p}" for p in patterns)
 
 
-def _render_action_profile(action_idx, action_text):
-    """Render the consolidated consideration profile for one action."""
-    st.markdown(f"### Action {action_idx + 1}")
-    st.markdown(f"> {action_text}")
+def _render_action_review(action_idx, action_text):
+    """Render the consideration review for one action."""
+    st.subheader(f"Action: {action_text}")
 
-    col_tech, col_eth = st.columns(2)
+    col_eth, col_tech = st.columns(2)
 
-    with col_tech:
-        st.markdown(
-            '<div class="section-header-tech">'
-            "Technical Considerations (NIST CSF)</div>",
-            unsafe_allow_html=True,
-        )
-        for domain_key in st.session_state.selected_nist_domains:
-            st.markdown(f"**{domain_key}**")
-            st.markdown(_get_response_text(action_idx, domain_key, "nist"))
-
-        if not st.session_state.selected_nist_domains:
-            st.markdown("*No technical domains activated.*")
-
+    # Left column — Ethical (PFCE)
     with col_eth:
         st.markdown(
             '<div class="section-header-eth">'
             "Ethical Considerations (PFCE)</div>",
             unsafe_allow_html=True,
         )
-        for domain_key in st.session_state.selected_pfce_domains:
+        has_pfce = False
+        for domain_key in PFCE_DISPLAY_ORDER:
+            if domain_key not in st.session_state.selected_pfce_domains:
+                continue
+            text = _get_consideration_text(action_idx, domain_key)
+            if text is None:
+                continue
+            has_pfce = True
             st.markdown(f"**{domain_key}**")
-            st.markdown(_get_response_text(action_idx, domain_key, "pfce"))
+            st.markdown(text)
 
-        if not st.session_state.selected_pfce_domains:
-            st.markdown("*No ethical domains activated.*")
+        if not has_pfce:
+            st.markdown(
+                "No ethical considerations were identified for this action."
+            )
 
-
-def _render_cross_action_comparison(actions):
-    """Side-by-side comparison of all actions across every activated domain."""
-    st.markdown("## Cross-Action Comparison")
-    st.markdown(
-        "Side-by-side view showing how each action produces different "
-        "considerations within the same domain."
-    )
-
-    # Technical domains
-    if st.session_state.selected_nist_domains:
+    # Right column — Technical (NIST CSF)
+    with col_tech:
         st.markdown(
             '<div class="section-header-tech">'
-            "Technical Considerations (NIST CSF)</div>",
+            "Technical Considerations (NIST CSF 2.0)</div>",
             unsafe_allow_html=True,
         )
-        for domain_key in st.session_state.selected_nist_domains:
+        has_nist = False
+        for domain_key in NIST_DISPLAY_ORDER:
+            if domain_key not in st.session_state.selected_nist_domains:
+                continue
+            text = _get_consideration_text(action_idx, domain_key)
+            if text is None:
+                continue
+            has_nist = True
             st.markdown(f"**{domain_key}**")
-            cols = st.columns(len(actions))
-            for col, (action_idx, action_text) in zip(cols, actions):
-                with col:
-                    st.markdown(f"*Action {action_idx + 1}*")
-                    st.markdown(
-                        _get_response_text(action_idx, domain_key, "nist")
-                    )
+            st.markdown(text)
 
-    # Ethical domains
-    if st.session_state.selected_pfce_domains:
-        st.markdown(
-            '<div class="section-header-eth">'
-            "Ethical Considerations (PFCE)</div>",
-            unsafe_allow_html=True,
-        )
-        for domain_key in st.session_state.selected_pfce_domains:
-            st.markdown(f"**{domain_key}**")
-            cols = st.columns(len(actions))
-            for col, (action_idx, action_text) in zip(cols, actions):
-                with col:
-                    st.markdown(f"*Action {action_idx + 1}*")
-                    st.markdown(
-                        _get_response_text(action_idx, domain_key, "pfce")
-                    )
+        if not has_nist:
+            st.markdown(
+                "No technical considerations were identified for this action."
+            )
 
 
 def render_stage5():
-    """Consolidated visibility stage — read-only review."""
-    st.header("Stage 5: Consolidated Visibility")
+    """Display-only consideration review."""
+    st.header("Stage 5: Consideration Review")
     st.markdown(
-        '<div class="stage-purpose">'
-        "<strong>Purpose:</strong> Review the complete consideration profile "
-        "for each action and compare across actions. This stage is read-only "
-        "— return to Stage 4 to modify considerations."
-        "</div>",
-        unsafe_allow_html=True,
+        "The following presents all considerations you identified, organized "
+        "by action. Review the complete landscape of ethical and technical "
+        "considerations before proceeding to documentation."
     )
 
     actions = _get_actions()
@@ -131,19 +107,15 @@ def render_stage5():
         st.warning("No actions declared. Return to Stage 3.")
         return
 
-    # Part 1: Per-Action Consolidated Views
-    st.markdown("## Per-Action Consideration Profiles")
-    for action_idx, action_text in actions:
-        _render_action_profile(action_idx, action_text)
-        st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
+    for i, (action_idx, action_text) in enumerate(actions):
+        if i > 0:
+            st.divider()
+        _render_action_review(action_idx, action_text)
 
-    # Part 2: Cross-Action Comparison
-    if len(actions) >= 2:
-        _render_cross_action_comparison(actions)
-        st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
+    st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if st.button(
-        "Proceed to Stage 6: Documentation →",
+        "Proceed to Documentation →",
         type="primary",
         use_container_width=True,
     ):
