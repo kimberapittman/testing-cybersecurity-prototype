@@ -36,7 +36,6 @@ def init_session_state():
         "selected_pfce_domains": [],
         # Stage 4 Tier 2
         "tier2_responses": {},
-        "tier2_same_as": {},
         # Stage 6
         "stage6_observations": "",
         "stage6_reasoning": "",
@@ -51,12 +50,11 @@ def clear_downstream(from_stage: int):
     if from_stage < 2:
         st.session_state.constraints = {}
     if from_stage < 3:
-        st.session_state.actions = ["", ""]
+        st.session_state.actions = [""]
     if from_stage < 4:
         st.session_state.selected_nist_domains = []
         st.session_state.selected_pfce_domains = []
         st.session_state.tier2_responses = {}
-        st.session_state.tier2_same_as = {}
 
 
 def navigate_to(stage: int):
@@ -129,7 +127,7 @@ def render_sidebar():
                       <div class="sb-p">
                         This tool provides a structured six-stage reasoning
                         process for cybersecurity decision analysis, combining
-                        NIST CSF technical context with PFCE ethical analysis.
+                        PFCE ethical analysis with NIST CSF 2.0 technical context.
                       </div>
                     </div>
 

@@ -32,41 +32,73 @@ def _get_actions():
 def _get_consideration_text(action_idx, domain_key):
     """Get consideration text for an action+domain pair. Returns None if N/A or empty."""
     action_key = str(action_idx)
-    same_as = st.session_state.tier2_same_as.get(action_key, {}).get(domain_key)
-    if same_as is not None:
-        action_key = str(same_as)
 
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
         domain_key, {}
     )
-    composite = responses.get("0", "").strip()
+    data = responses.get("0", {})
 
-    if not composite or composite == "N/A":
+    if isinstance(data, str):
+        if not data.strip() or data.strip() == "N/A":
+            return None
+        patterns = [p.strip() for p in data.split("|") if p.strip()]
+        return "\n".join(f"- {p}" for p in patterns)
+
+    if data.get("na", False):
         return None
 
-    patterns = [p.strip() for p in composite.split("|") if p.strip()]
-    return "\n".join(f"- {p}" for p in patterns)
+    text = data.get("text", "").strip()
+    patterns = data.get("patterns", [])
+
+    if not text and not patterns:
+        return None
+
+    parts = []
+    if text:
+        parts.append(text)
+    if patterns:
+        for p in patterns:
+            parts.append(f"- {p}")
+
+    return "\n".join(parts)
 
 
 def _get_response_text_for_record(action_idx, domain_key):
     """Get consideration text formatted for the text-based compiled record."""
     action_key = str(action_idx)
-    same_as = st.session_state.tier2_same_as.get(action_key, {}).get(domain_key)
-    if same_as is not None:
-        action_key = str(same_as)
 
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
         domain_key, {}
     )
-    composite = responses.get("0", "").strip()
+    data = responses.get("0", {})
 
-    if composite == "N/A":
+    if isinstance(data, str):
+        if data.strip() == "N/A":
+            return "      N/A"
+        elif data.strip():
+            patterns = [p.strip() for p in data.split("|") if p.strip()]
+            return "\n".join(f"      - {p}" for p in patterns)
+        else:
+            return "      (No considerations selected)"
+
+    if data.get("na", False):
         return "      N/A"
-    elif composite:
-        patterns = [p.strip() for p in composite.split("|") if p.strip()]
-        return "\n".join(f"      - {p}" for p in patterns)
-    else:
+
+    text = data.get("text", "").strip()
+    patterns = data.get("patterns", [])
+
+    if not text and not patterns:
         return "      (No considerations selected)"
+
+    lines = []
+    if text:
+        for line in text.split("\n"):
+            lines.append(f"      {line}")
+    if patterns:
+        for p in patterns:
+            lines.append(f"      - {p}")
+
+    return "\n".join(lines)
 
 
 def _compile_record():

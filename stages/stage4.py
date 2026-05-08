@@ -87,42 +87,35 @@ def _render_tier2():
     """Tier 2: Consideration Specification per action per activated domain."""
     st.subheader("Tier 2: Consideration Specification")
     st.markdown(
-        "For each declared action and each activated domain, select "
+        "For each declared action and each activated domain, describe "
         "the considerations that apply. Use the guiding questions to "
-        "direct your attention. Select 'Other' to add considerations "
-        "not listed."
+        "direct your attention."
     )
 
     actions = _get_actions()
     all_domains = (
-        [(d, "nist") for d in st.session_state.selected_nist_domains]
-        + [(d, "pfce") for d in st.session_state.selected_pfce_domains]
+        [(d, "pfce") for d in st.session_state.selected_pfce_domains]
+        + [(d, "nist") for d in st.session_state.selected_nist_domains]
     )
 
-    # Ensure data structures exist
     if not isinstance(st.session_state.tier2_responses, dict):
         st.session_state.tier2_responses = {}
-    if not isinstance(st.session_state.tier2_same_as, dict):
-        st.session_state.tier2_same_as = {}
 
     for action_idx, action_text in actions:
         action_key = str(action_idx)
 
         if action_key not in st.session_state.tier2_responses:
             st.session_state.tier2_responses[action_key] = {}
-        if action_key not in st.session_state.tier2_same_as:
-            st.session_state.tier2_same_as[action_key] = {}
 
         st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
         st.markdown(f"### Action {action_idx + 1}")
         st.markdown(f"> {action_text}")
 
-        # Technical domains section
-        tech_domains = [
-            (d, t) for d, t in all_domains if t == "nist"
-        ]
         eth_domains = [
             (d, t) for d, t in all_domains if t == "pfce"
+        ]
+        tech_domains = [
+            (d, t) for d, t in all_domains if t == "nist"
         ]
 
         if eth_domains:
@@ -148,7 +141,7 @@ def _render_tier2():
 
 def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                            domain_defs):
-    """Render consolidated prompt with patterns for a set of domains for one action."""
+    """Render Tier 2 prompt with free-text input and optional pattern checkboxes."""
     for domain_key, domain_type in domains:
         domain_info = domain_defs[domain_key]
 
@@ -157,7 +150,6 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
             expanded=True,
         ):
 
-            # Initialize response storage for this domain
             if domain_key not in st.session_state.tier2_responses.get(
                 action_key, {}
             ):
@@ -165,58 +157,71 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
 
             responses = st.session_state.tier2_responses[action_key][domain_key]
 
-            # Display the consolidated Tier 2 prompt
+            # 1. Tier 2 prompt
             st.markdown(f"**{domain_info['tier2_prompt']}**")
 
-            # Display guidance questions as non-interactive reference
-            with st.expander("Guiding considerations", expanded=False):
-                for g in domain_info["guidance"]:
-                    st.markdown(f"- {g}")
+            # 2. Guidance questions — always visible
+            for g in domain_info["guidance"]:
+                st.markdown(f"- {g}")
 
-            # Render pattern checkboxes
+            # 3. Free-text area — primary input
             uid = f"{action_key}_{domain_key}"
-            selected_patterns = []
+            text_uid = f"text_{action_key}_{domain_key}"
 
-            for pat_idx, pattern_label in enumerate(domain_info["patterns"]):
-                pat_uid = f"pat_{uid}_{pat_idx}"
-                cb_val = st.session_state.get(pat_uid, False)
+            existing = responses.get("0", {})
+            if isinstance(existing, dict):
+                existing_text = existing.get("text", "")
+            else:
+                existing_text = ""
 
-                is_checked = st.checkbox(
-                    pattern_label,
-                    value=cb_val,
-                    key=pat_uid,
-                )
-
-                if is_checked:
-                    selected_patterns.append(pattern_label)
-
-            # "Other" free text — always visible
-            other_uid = f"pat_other_{uid}"
-            other_val = st.text_input(
-                "Other",
-                value=st.session_state.get(other_uid, ""),
-                key=other_uid,
-                placeholder="Describe any other consideration not listed above...",
+            text_val = st.text_area(
+                "Describe the considerations that apply to this action for this domain.",
+                value=st.session_state.get(text_uid, existing_text),
+                key=text_uid,
+                height=100,
+                placeholder="Based on the guiding questions above, describe any considerations that apply...",
             )
-            if other_val.strip():
-                selected_patterns.append(f"[Other] {other_val.strip()}")
 
-            # N/A option
+            # 4. Pattern checkboxes — inside collapsed expander
+            selected_patterns = []
+            with st.expander(
+                "Common considerations in this domain (select any that also apply)",
+                expanded=False,
+            ):
+                for pat_idx, pattern_label in enumerate(domain_info["patterns"]):
+                    pat_uid = f"pat_{uid}_{pat_idx}"
+                    is_checked = st.checkbox(
+                        pattern_label,
+                        value=st.session_state.get(pat_uid, False),
+                        key=pat_uid,
+                    )
+                    if is_checked:
+                        selected_patterns.append(pattern_label)
+
+            # 5. N/A checkbox
             na_uid = f"pat_na_{uid}"
             na_val = st.checkbox(
                 "Not applicable to this action",
                 value=st.session_state.get(na_uid, False),
                 key=na_uid,
             )
-
-            # Store as composite string for downstream consumption
-            # Format: pipe-separated pattern labels, or "N/A"
             if na_val:
-                responses["0"] = "N/A"
-            elif selected_patterns:
-                responses["0"] = " | ".join(selected_patterns)
+                st.warning(
+                    "You indicated this domain was relevant at Tier 1. "
+                    "Are you sure no considerations apply to this action?"
+                )
+
+            # 6. Store as dict
+            if na_val:
+                responses["0"] = {"text": "", "patterns": [], "na": True}
+            elif text_val.strip() or selected_patterns:
+                responses["0"] = {
+                    "text": text_val.strip(),
+                    "patterns": selected_patterns,
+                    "na": False,
+                }
             else:
-                responses["0"] = ""
+                responses["0"] = {"text": "", "patterns": [], "na": False}
 
 
 def _check_tier2_complete():
@@ -230,7 +235,7 @@ def render_stage4():
     st.markdown(
         '<div class="stage-purpose">'
         "<strong>Purpose:</strong> Systematically elicit ethical and technical "
-        "considerations using NIST CSF and PFCE as interpretive lenses."
+        "considerations using PFCE and NIST CSF 2.0 as interpretive lenses."
         "</div>",
         unsafe_allow_html=True,
     )
