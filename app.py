@@ -37,6 +37,9 @@ def init_session_state():
         # Stage 4 Tier 2
         "tier2_responses": {},
         "tier2_same_as": {},
+        # Stage 6
+        "stage6_observations": "",
+        "stage6_reasoning": "",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -135,7 +138,7 @@ def render_sidebar():
                       <div class="sb-p">
                         Progress through six stages: define the decision point,
                         declare constraints, specify actions, elicit
-                        considerations, examine interactions, and produce a
+                        considerations, review integration, and produce a
                         documented record.
                       </div>
                     </div>

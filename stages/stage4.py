@@ -248,7 +248,7 @@ def render_stage4():
     tier2_complete = _check_tier2_complete()
 
     if tier2_complete:
-        st.success("Ready to proceed to examination.")
+        st.success("Ready to proceed to review.")
         if st.button(
             "Proceed to Stage 5: Consideration Review →",
             type="primary",
