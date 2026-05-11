@@ -20,6 +20,13 @@ def render_stage3():
         "would actually do — rather than implementation steps."
     )
 
+    st.markdown(
+        "For example: *'Refuse the ransom demand and pursue full system "
+        "reconstruction from backups'* — not *'Reimage servers and restore "
+        "from tape backup.'* The first describes what you would commit to "
+        "doing. The second describes how you would do it."
+    )
+
     actions = st.session_state.actions
 
     # Render existing action fields

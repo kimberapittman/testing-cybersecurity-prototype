@@ -21,7 +21,7 @@ CONSTRAINT_CATEGORIES = [
     (
         "personnel_expertise",
         "Available Resources — staffing, funding, and expertise",
-        "Are the personnel and expertise required to execute the actions "
+        "Are the staffing, funding, and expertise required to execute the actions "
         "under consideration available at the time of this decision?",
     ),
     (
@@ -56,11 +56,11 @@ CONSTRAINT_CATEGORIES = [
 
 def render_stage2():
     """Define the option space through constraint declaration."""
-    st.header("Stage 2: Constraint Declaration")
+    st.header("Stage 2: Decision Environment")
     st.markdown(
         '<div class="stage-purpose">'
-        "<strong>Purpose:</strong> Define the option space. Constraints are "
-        "analytically prior to all subsequent stages — they determine what "
+        "<strong>Purpose:</strong> Establish the decision environment. Constraints are "
+        "analytically prior to all subsequent stages — they inform what "
         "actions are feasible."
         "</div>",
         unsafe_allow_html=True,
@@ -128,7 +128,7 @@ def render_stage2():
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if st.button(
-        "Proceed to Stage 3: Action-Set Declaration →",
+        "Proceed to Stage 3: Declared Actions →",
         type="primary",
         use_container_width=True,
     ):

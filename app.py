@@ -83,7 +83,7 @@ def render_progress_bar():
     """Render glassy stage indicators for the six stages."""
     stage_names = [
         "Decision Point",
-        "Constraints",
+        "Decision Environment",
         "Actions",
         "Considerations",
         "Review",
@@ -215,7 +215,7 @@ def render_navigation():
         cols = st.columns(st.session_state.current_stage - 1)
         stage_names = [
             "Stage 1: Decision Point",
-            "Stage 2: Constraints",
+            "Stage 2: Decision Environment",
             "Stage 3: Actions",
             "Stage 4: Considerations",
             "Stage 5: Review",
