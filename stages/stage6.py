@@ -110,6 +110,9 @@ def _compile_record():
     sections.append("DECISION-POINT SPECIFICATION")
     sections.append("=" * 60)
     sections.append(f"Decision: {st.session_state.decision_description}")
+    actor = st.session_state.responsible_actor.strip()
+    if actor:
+        sections.append(f"Decision-maker: {actor}")
 
     # ── Constraints ──
     sections.append("")
@@ -301,6 +304,9 @@ def _render_record_summary():
     # Decision Point
     st.subheader("Decision Point")
     st.markdown(f"{st.session_state.decision_description}")
+    actor = st.session_state.responsible_actor.strip()
+    if actor:
+        st.markdown(f"**Decision-maker:** {actor}")
 
     # Constraints
     st.subheader("Constraints")
