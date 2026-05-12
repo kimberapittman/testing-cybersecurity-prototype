@@ -1,6 +1,7 @@
 """Stage 6: Documentation — document observations, reasoning, and export."""
 
 import io
+from datetime import datetime
 import streamlit as st
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -11,6 +12,7 @@ from reportlab.platypus import (
     Paragraph,
     Spacer,
     HRFlowable,
+    PageBreak,
 )
 from domain_data import (
     NIST_DOMAINS,
@@ -219,8 +221,97 @@ def _escape_xml(text: str) -> str:
     )
 
 
+def _build_decision_brief_story(styles_dict, date_str: str) -> list:
+    """Build the Decision Brief flowables — appears as the lead page of the PDF."""
+    brief = []
+
+    brief.append(Paragraph("Decision Brief", styles_dict["brief_title"]))
+    brief.append(
+        Paragraph(
+            f"Documented record generated {_escape_xml(date_str)}",
+            styles_dict["brief_sub"],
+        )
+    )
+    brief.append(Spacer(1, 14))
+
+    brief.append(Paragraph("Decision Point", styles_dict["brief_heading"]))
+    decision = st.session_state.decision_description.strip() or "(not specified)"
+    brief.append(Paragraph(_escape_xml(decision), styles_dict["brief_body"]))
+    brief.append(Spacer(1, 10))
+
+    actor = st.session_state.responsible_actor.strip()
+    if actor:
+        brief.append(Paragraph("Decision-Maker", styles_dict["brief_heading"]))
+        brief.append(Paragraph(_escape_xml(actor), styles_dict["brief_body"]))
+        brief.append(Spacer(1, 10))
+
+    brief.append(Paragraph("Key Considerations", styles_dict["brief_heading"]))
+    key_cons = st.session_state.stage6_key_considerations.strip()
+    if key_cons:
+        for para in key_cons.split("\n"):
+            if para.strip():
+                brief.append(
+                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
+                )
+    else:
+        brief.append(
+            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
+        )
+    brief.append(Spacer(1, 10))
+
+    brief.append(Paragraph("Decision Reasoning", styles_dict["brief_heading"]))
+    reasoning = st.session_state.stage6_reasoning.strip()
+    if reasoning:
+        for para in reasoning.split("\n"):
+            if para.strip():
+                brief.append(
+                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
+                )
+    else:
+        brief.append(
+            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
+        )
+    brief.append(Spacer(1, 10))
+
+    brief.append(Paragraph("Observations", styles_dict["brief_heading"]))
+    obs = st.session_state.stage6_observations.strip()
+    if obs:
+        for para in obs.split("\n"):
+            if para.strip():
+                brief.append(
+                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
+                )
+    else:
+        brief.append(
+            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
+        )
+    brief.append(Spacer(1, 14))
+
+    brief.append(
+        HRFlowable(
+            width="100%",
+            thickness=0.5,
+            color=HexColor("#999999"),
+            spaceBefore=4,
+            spaceAfter=8,
+        )
+    )
+    brief.append(
+        Paragraph(
+            "The complete six-stage analytic record follows on the next page. "
+            "The record documents the decision point, constraints declared, "
+            "actions considered, and the full set of ethical and technical "
+            "considerations elicited at each stage.",
+            styles_dict["brief_pointer"],
+        )
+    )
+
+    brief.append(PageBreak())
+    return brief
+
+
 def _generate_pdf(record_text: str) -> bytes:
-    """Generate a PDF from the compiled record text using reportlab."""
+    """Generate a PDF with a Decision Brief lead page followed by the analytic record."""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -231,44 +322,104 @@ def _generate_pdf(record_text: str) -> bytes:
         bottomMargin=0.75 * inch,
     )
 
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
+    base_styles = getSampleStyleSheet()
+
+    # Decision Brief styles
+    brief_styles = {
+        "brief_title": ParagraphStyle(
+            "BriefTitle",
+            parent=base_styles["Title"],
+            fontSize=20,
+            spaceAfter=2,
+            textColor=HexColor("#1a1a1a"),
+        ),
+        "brief_sub": ParagraphStyle(
+            "BriefSub",
+            parent=base_styles["Normal"],
+            fontSize=9,
+            leading=11,
+            textColor=HexColor("#666666"),
+            spaceAfter=4,
+        ),
+        "brief_heading": ParagraphStyle(
+            "BriefHeading",
+            parent=base_styles["Heading2"],
+            fontSize=12,
+            spaceBefore=6,
+            spaceAfter=4,
+            textColor=HexColor("#1e40af"),
+        ),
+        "brief_body": ParagraphStyle(
+            "BriefBody",
+            parent=base_styles["Normal"],
+            fontSize=10,
+            leading=13,
+            spaceAfter=4,
+        ),
+        "brief_body_muted": ParagraphStyle(
+            "BriefBodyMuted",
+            parent=base_styles["Normal"],
+            fontSize=10,
+            leading=13,
+            textColor=HexColor("#888888"),
+            spaceAfter=4,
+        ),
+        "brief_pointer": ParagraphStyle(
+            "BriefPointer",
+            parent=base_styles["Normal"],
+            fontSize=9,
+            leading=12,
+            textColor=HexColor("#555555"),
+            spaceAfter=2,
+        ),
+    }
+
+    # Analytic record styles
+    record_title_style = ParagraphStyle(
         "CustomTitle",
-        parent=styles["Title"],
+        parent=base_styles["Title"],
         fontSize=16,
         spaceAfter=6,
         textColor=HexColor("#1a1a1a"),
     )
-    heading_style = ParagraphStyle(
+    record_heading_style = ParagraphStyle(
         "CustomHeading",
-        parent=styles["Heading2"],
+        parent=base_styles["Heading2"],
         fontSize=12,
         spaceBefore=12,
         spaceAfter=4,
         textColor=HexColor("#1e40af"),
     )
-    body_style = ParagraphStyle(
+    record_body_style = ParagraphStyle(
         "CustomBody",
-        parent=styles["Normal"],
+        parent=base_styles["Normal"],
         fontSize=9,
         leading=12,
         spaceAfter=3,
     )
-    sub_style = ParagraphStyle(
+    record_sub_style = ParagraphStyle(
         "CustomSub",
-        parent=styles["Normal"],
+        parent=base_styles["Normal"],
         fontSize=8,
         leading=10,
         textColor=HexColor("#666666"),
         spaceAfter=2,
     )
 
+    date_str = datetime.now().strftime("%B %d, %Y")
+
     story = []
-    story.append(Paragraph("Cybersecurity Decision-Support Record", title_style))
+
+    # 1. Decision Brief (lead page)
+    story.extend(_build_decision_brief_story(brief_styles, date_str))
+
+    # 2. Analytic Record (following pages)
+    story.append(Paragraph("Analytic Record", record_title_style))
     story.append(
         Paragraph(
-            "Generated from session data &mdash; no persistent storage",
-            sub_style,
+            "Complete six-stage record of the elicitation and integration "
+            "sequence.",
+            record_sub_style,
         )
     )
     story.append(Spacer(1, 12))
@@ -285,7 +436,7 @@ def _generate_pdf(record_text: str) -> bytes:
                 )
             )
         elif line.isupper() and len(line) > 5 and ":" not in line:
-            story.append(Paragraph(_escape_xml(line), heading_style))
+            story.append(Paragraph(_escape_xml(line), record_heading_style))
         elif line.startswith("-" * 10):
             story.append(
                 HRFlowable(
@@ -297,7 +448,7 @@ def _generate_pdf(record_text: str) -> bytes:
                 )
             )
         elif line.strip():
-            story.append(Paragraph(_escape_xml(line), body_style))
+            story.append(Paragraph(_escape_xml(line), record_body_style))
         else:
             story.append(Spacer(1, 6))
 
@@ -469,7 +620,7 @@ def render_stage6():
     st.download_button(
         label="Export Documented Record",
         data=pdf_bytes,
-        file_name="cybersecurity_decision_record.pdf",
+        file_name="documented_record.pdf",
         mime="application/pdf",
         type="primary",
         use_container_width=True,
