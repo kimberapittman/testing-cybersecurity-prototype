@@ -190,6 +190,14 @@ def _compile_record():
     obs = st.session_state.stage6_observations.strip()
     sections.append(obs if obs else "None documented")
 
+    # ── Key Considerations ──
+    sections.append("")
+    sections.append("=" * 60)
+    sections.append("KEY CONSIDERATIONS")
+    sections.append("=" * 60)
+    key_cons = st.session_state.stage6_key_considerations.strip()
+    sections.append(key_cons if key_cons else "None documented")
+
     # ── Decision Reasoning ──
     sections.append("")
     sections.append("=" * 60)
@@ -383,6 +391,11 @@ def _render_record_summary():
     obs = st.session_state.stage6_observations.strip()
     st.markdown(obs if obs else "*None documented*")
 
+    # Key Considerations
+    st.subheader("Key Considerations")
+    key_cons = st.session_state.stage6_key_considerations.strip()
+    st.markdown(key_cons if key_cons else "*None documented*")
+
     # Decision Reasoning
     st.subheader("Decision Reasoning")
     reasoning = st.session_state.stage6_reasoning.strip()
@@ -415,7 +428,21 @@ def render_stage6():
         key="input_stage6_observations",
     )
 
-    # Text Area 2: Decision Reasoning
+    # Text Area 2: Key Considerations
+    st.session_state.stage6_key_considerations = st.text_area(
+        "Of the considerations you reviewed, which two or three "
+        "weighed most heavily in your thinking?",
+        value=st.session_state.stage6_key_considerations,
+        height=150,
+        help=(
+            "You are not ranking all considerations. Identify only "
+            "those that felt most significant to your decision and "
+            "briefly explain why."
+        ),
+        key="input_stage6_key_considerations",
+    )
+
+    # Text Area 3: Decision Reasoning
     st.session_state.stage6_reasoning = st.text_area(
         "Based on your review of all considerations, document your reasoning "
         "for the action you are recommending or selecting.",

@@ -38,6 +38,7 @@ def init_session_state():
         "tier2_responses": {},
         # Stage 6
         "stage6_observations": "",
+        "stage6_key_considerations": "",
         "stage6_reasoning": "",
     }
     for key, value in defaults.items():
