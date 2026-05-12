@@ -206,9 +206,10 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                 key=na_uid,
             )
             if na_val:
-                st.warning(
-                    "You indicated this domain was relevant at Tier 1. "
-                    "Are you sure no considerations apply to this action?"
+                st.info(
+                    "This domain was selected as relevant at Tier 1. "
+                    "Marking it N/A will exclude it from this action's "
+                    "considerations."
                 )
 
             # 6. Store as dict
@@ -253,9 +254,9 @@ def render_stage4():
     tier2_complete = _check_tier2_complete()
 
     if tier2_complete:
-        st.success("Ready to proceed to review.")
+        st.success("Ready to proceed to integration.")
         if st.button(
-            "Proceed to Stage 5: Consideration Review →",
+            "Proceed to Stage 5: Integration →",
             type="primary",
             use_container_width=True,
         ):

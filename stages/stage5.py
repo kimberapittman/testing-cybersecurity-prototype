@@ -1,4 +1,4 @@
-"""Stage 5: Consideration Review — display-only review of elicited considerations."""
+"""Stage 5: Integration — display-only integration of elicited considerations."""
 
 import streamlit as st
 from domain_data import NIST_DOMAINS, PFCE_DOMAINS
@@ -54,7 +54,7 @@ def _get_consideration_text(action_idx, domain_key):
 
 def _render_action_review(action_idx, action_text):
     """Render the consideration review for one action."""
-    st.subheader(f"Action: {action_text}")
+    st.subheader(f"Action {action_idx + 1}: {action_text}")
 
     col_eth, col_tech = st.columns(2)
 
@@ -104,12 +104,13 @@ def _render_action_review(action_idx, action_text):
 
 
 def render_stage5():
-    """Display-only consideration review."""
-    st.header("Stage 5: Consideration Review")
+    """Display-only integration of elicited considerations."""
+    st.header("Stage 5: Integration")
     st.markdown(
-        "The following presents all considerations you identified, organized "
-        "by action. Review the complete landscape of ethical and technical "
-        "considerations before proceeding to documentation."
+        "This stage presents the full landscape of ethical and technical "
+        "considerations you elicited, organized by action. This is the "
+        "integration moment — see the considerations together before "
+        "documenting your reasoning."
     )
 
     actions = _get_actions()
@@ -120,7 +121,7 @@ def render_stage5():
 
     for i, (action_idx, action_text) in enumerate(actions):
         if i > 0:
-            st.divider()
+            st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
         _render_action_review(action_idx, action_text)
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)

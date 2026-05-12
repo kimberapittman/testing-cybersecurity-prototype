@@ -87,7 +87,7 @@ def render_progress_bar():
         "Decision Environment",
         "Actions",
         "Considerations",
-        "Review",
+        "Integration",
         "Documentation",
     ]
     cols = st.columns(6)
@@ -126,19 +126,22 @@ def render_sidebar():
                     <span class="sb-section">What It Does</span>
                     <div class="sb-section-body">
                       <div class="sb-p">
-                        This tool provides a structured six-stage reasoning
-                        process for cybersecurity decision analysis, combining
-                        PFCE ethical analysis with NIST CSF 2.0 technical context.
+                        This tool structures a six-stage reasoning process
+                        for cybersecurity decision analysis. It uses PFCE
+                        ethical principles and NIST CSF 2.0 technical
+                        functions as interpretive lenses to elicit
+                        considerations — without prescribing outcomes.
                       </div>
                     </div>
 
                     <span class="sb-section">How It Works</span>
                     <div class="sb-section-body">
                       <div class="sb-p">
-                        Progress through six stages: define the decision point,
-                        declare constraints, specify actions, elicit
-                        considerations, review integration, and produce a
-                        documented record.
+                        Progress through six stages: specify the decision
+                        point, establish the decision environment, declare
+                        actions, elicit considerations, integrate the full
+                        consideration landscape, and produce a documented
+                        record.
                       </div>
                     </div>
 
@@ -219,7 +222,7 @@ def render_navigation():
             "Stage 2: Decision Environment",
             "Stage 3: Actions",
             "Stage 4: Considerations",
-            "Stage 5: Review",
+            "Stage 5: Integration",
         ]
         for i, col in enumerate(cols):
             stage_num = i + 1

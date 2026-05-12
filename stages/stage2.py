@@ -68,7 +68,9 @@ def render_stage2():
 
     st.markdown(
         "Select only the constraints that apply to your specific decision "
-        "context — not all will be relevant to every decision."
+        "context — not all will be relevant to every decision. "
+        "The constraints you declare here define which actions are "
+        "feasible in Stage 3."
     )
 
     # Initialize constraint state if needed

@@ -43,7 +43,7 @@ def render_stage1():
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     if st.button(
-        "Proceed to Stage 2: Constraint Declaration →",
+        "Proceed to Stage 2: Decision Environment →",
         type="primary",
         use_container_width=True,
     ):
