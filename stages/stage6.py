@@ -2,6 +2,7 @@
 
 import io
 from datetime import datetime
+
 import streamlit as st
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -13,17 +14,45 @@ from reportlab.platypus import (
     Spacer,
     HRFlowable,
     PageBreak,
-)
-from domain_data import (
-    NIST_DOMAINS,
-    PFCE_DOMAINS,
+    Table,
+    TableStyle,
+    KeepTogether,
 )
 
-PFCE_DISPLAY_ORDER = ["BENEFICENCE", "NON-MALEFICENCE", "AUTONOMY", "JUSTICE", "EXPLICABILITY"]
-NIST_DISPLAY_ORDER = ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"]
 
+# ────────────────────────────────────────────────────────────────────
+# CONSTANTS
+# ────────────────────────────────────────────────────────────────────
+
+PFCE_DISPLAY_ORDER = [
+    "BENEFICENCE", "NON-MALEFICENCE", "AUTONOMY", "JUSTICE", "EXPLICABILITY",
+]
+NIST_DISPLAY_ORDER = [
+    "GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER",
+]
+
+# Title-case names for display in the PDF.
+DOMAIN_DISPLAY_NAMES = {
+    "BENEFICENCE": "Beneficence",
+    "NON-MALEFICENCE": "Non-Maleficence",
+    "AUTONOMY": "Autonomy",
+    "JUSTICE": "Justice",
+    "EXPLICABILITY": "Explicability",
+    "GOVERN": "Govern",
+    "IDENTIFY": "Identify",
+    "PROTECT": "Protect",
+    "DETECT": "Detect",
+    "RESPOND": "Respond",
+    "RECOVER": "Recover",
+}
+
+
+# ────────────────────────────────────────────────────────────────────
+# HELPERS
+# ────────────────────────────────────────────────────────────────────
 
 def _get_actions():
+    """Return a list of (index, text) tuples for non-empty actions."""
     return [
         (i, action)
         for i, action in enumerate(st.session_state.actions)
@@ -32,7 +61,11 @@ def _get_actions():
 
 
 def _get_consideration_text(action_idx, domain_key):
-    """Get consideration text for an action+domain pair. Returns None if N/A or empty."""
+    """Get consideration text for the in-app expander.
+
+    Returns a single string with text and bullets merged, or None if the
+    domain was marked N/A or has no content. Used by _render_record_summary.
+    """
     action_key = str(action_idx)
 
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
@@ -65,8 +98,13 @@ def _get_consideration_text(action_idx, domain_key):
     return "\n".join(parts)
 
 
-def _get_response_text_for_record(action_idx, domain_key):
-    """Get consideration text formatted for the text-based compiled record."""
+def _get_consideration_parts(action_idx, domain_key):
+    """Get consideration text and patterns separately for the PDF.
+
+    Returns a (text, patterns) tuple. Returns (None, None) if the domain
+    was marked N/A or has no content. Used by the PDF builder so that text
+    and bullets can be rendered with different paragraph styles.
+    """
     action_key = str(action_idx)
 
     responses = st.session_state.tier2_responses.get(action_key, {}).get(
@@ -75,143 +113,25 @@ def _get_response_text_for_record(action_idx, domain_key):
     data = responses.get("0", {})
 
     if isinstance(data, str):
-        if data.strip() == "N/A":
-            return "      N/A"
-        elif data.strip():
-            patterns = [p.strip() for p in data.split("|") if p.strip()]
-            return "\n".join(f"      - {p}" for p in patterns)
-        else:
-            return "      (No considerations selected)"
+        # Legacy string shape — treat as patterns
+        if not data.strip() or data.strip() == "N/A":
+            return None, None
+        patterns = [p.strip() for p in data.split("|") if p.strip()]
+        return "", patterns
 
     if data.get("na", False):
-        return "      N/A"
+        return None, None
 
     text = data.get("text", "").strip()
     patterns = data.get("patterns", [])
 
     if not text and not patterns:
-        return "      (No considerations selected)"
+        return None, None
 
-    lines = []
-    if text:
-        for line in text.split("\n"):
-            lines.append(f"      {line}")
-    if patterns:
-        for p in patterns:
-            lines.append(f"      - {p}")
-
-    return "\n".join(lines)
+    return text, patterns
 
 
-def _compile_record():
-    """Compile the full documented record as structured text for PDF export."""
-    sections = []
-
-    # ── Decision Point ──
-    sections.append("=" * 60)
-    sections.append("DECISION-POINT SPECIFICATION")
-    sections.append("=" * 60)
-    sections.append(f"Decision: {st.session_state.decision_description}")
-    actor = st.session_state.responsible_actor.strip()
-    if actor:
-        sections.append(f"Decision-maker: {actor}")
-
-    # ── Constraints ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("CONSTRAINT DECLARATION")
-    sections.append("=" * 60)
-    constraints = st.session_state.constraints
-    if constraints:
-        for key, data in constraints.items():
-            label = data.get("label", key)
-            spec = data.get("specification", "").strip()
-            sections.append(f"{label}: {spec if spec else '(No specification)'}")
-    else:
-        sections.append("(No constraints declared)")
-
-    # ── Actions ──
-    actions = _get_actions()
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("DECLARED ACTIONS")
-    sections.append("=" * 60)
-    for action_idx, action_text in actions:
-        sections.append(f"Action {action_idx + 1}: {action_text}")
-
-    # ── Considerations by Action ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("CONSIDERATIONS BY ACTION")
-    sections.append("=" * 60)
-    for action_idx, action_text in actions:
-        sections.append(f"\nAction {action_idx + 1}: {action_text}")
-        sections.append("-" * 40)
-
-        sections.append("  Ethical Considerations (PFCE):")
-        has_pfce = False
-        for domain_key in PFCE_DISPLAY_ORDER:
-            if domain_key not in st.session_state.selected_pfce_domains:
-                continue
-            text = _get_consideration_text(action_idx, domain_key)
-            if text is None:
-                continue
-            has_pfce = True
-            sections.append(f"    {domain_key}:")
-            sections.append(
-                _get_response_text_for_record(action_idx, domain_key)
-            )
-        if not has_pfce:
-            sections.append(
-                "    No ethical considerations were identified for this action."
-            )
-
-        sections.append("  Technical Considerations (NIST CSF):")
-        has_nist = False
-        for domain_key in NIST_DISPLAY_ORDER:
-            if domain_key not in st.session_state.selected_nist_domains:
-                continue
-            text = _get_consideration_text(action_idx, domain_key)
-            if text is None:
-                continue
-            has_nist = True
-            sections.append(f"    {domain_key}:")
-            sections.append(
-                _get_response_text_for_record(action_idx, domain_key)
-            )
-        if not has_nist:
-            sections.append(
-                "    No technical considerations were identified for this action."
-            )
-
-    # ── Observations ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("OBSERVATIONS")
-    sections.append("=" * 60)
-    obs = st.session_state.stage6_observations.strip()
-    sections.append(obs if obs else "None documented")
-
-    # ── Key Considerations ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("KEY CONSIDERATIONS")
-    sections.append("=" * 60)
-    key_cons = st.session_state.stage6_key_considerations.strip()
-    sections.append(key_cons if key_cons else "None documented")
-
-    # ── Decision Reasoning ──
-    sections.append("")
-    sections.append("=" * 60)
-    sections.append("DECISION REASONING")
-    sections.append("=" * 60)
-    reasoning = st.session_state.stage6_reasoning.strip()
-    sections.append(reasoning if reasoning else "None documented")
-
-    return "\n".join(sections)
-
-
-def _escape_xml(text: str) -> str:
+def _escape_xml(text):
     """Escape text for use in reportlab Paragraph XML."""
     return (
         text.replace("&", "&amp;")
@@ -221,243 +141,560 @@ def _escape_xml(text: str) -> str:
     )
 
 
-def _build_decision_brief_story(styles_dict, date_str: str) -> list:
-    """Build the Decision Brief flowables — appears as the lead page of the PDF."""
-    brief = []
+# ────────────────────────────────────────────────────────────────────
+# PDF: STYLES AND DECORATION
+# ────────────────────────────────────────────────────────────────────
 
-    brief.append(Paragraph("Decision Brief", styles_dict["brief_title"]))
-    brief.append(
-        Paragraph(
-            f"Documented record generated {_escape_xml(date_str)}",
-            styles_dict["brief_sub"],
-        )
-    )
-    brief.append(Spacer(1, 14))
-
-    brief.append(Paragraph("Decision Point", styles_dict["brief_heading"]))
-    decision = st.session_state.decision_description.strip() or "(not specified)"
-    brief.append(Paragraph(_escape_xml(decision), styles_dict["brief_body"]))
-    brief.append(Spacer(1, 10))
-
-    actor = st.session_state.responsible_actor.strip()
-    if actor:
-        brief.append(Paragraph("Decision-Maker", styles_dict["brief_heading"]))
-        brief.append(Paragraph(_escape_xml(actor), styles_dict["brief_body"]))
-        brief.append(Spacer(1, 10))
-
-    brief.append(Paragraph("Key Considerations", styles_dict["brief_heading"]))
-    key_cons = st.session_state.stage6_key_considerations.strip()
-    if key_cons:
-        for para in key_cons.split("\n"):
-            if para.strip():
-                brief.append(
-                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
-                )
-    else:
-        brief.append(
-            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
-        )
-    brief.append(Spacer(1, 10))
-
-    brief.append(Paragraph("Decision Reasoning", styles_dict["brief_heading"]))
-    reasoning = st.session_state.stage6_reasoning.strip()
-    if reasoning:
-        for para in reasoning.split("\n"):
-            if para.strip():
-                brief.append(
-                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
-                )
-    else:
-        brief.append(
-            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
-        )
-    brief.append(Spacer(1, 10))
-
-    brief.append(Paragraph("Observations", styles_dict["brief_heading"]))
-    obs = st.session_state.stage6_observations.strip()
-    if obs:
-        for para in obs.split("\n"):
-            if para.strip():
-                brief.append(
-                    Paragraph(_escape_xml(para), styles_dict["brief_body"])
-                )
-    else:
-        brief.append(
-            Paragraph("<i>Not documented.</i>", styles_dict["brief_body_muted"])
-        )
-    brief.append(Spacer(1, 14))
-
-    brief.append(
-        HRFlowable(
-            width="100%",
-            thickness=0.5,
-            color=HexColor("#999999"),
-            spaceBefore=4,
-            spaceAfter=8,
-        )
-    )
-    brief.append(
-        Paragraph(
-            "The complete six-stage analytic record follows on the next page. "
-            "The record documents the decision point, constraints declared, "
-            "actions considered, and the full set of ethical and technical "
-            "considerations elicited at each stage.",
-            styles_dict["brief_pointer"],
-        )
-    )
-
-    brief.append(PageBreak())
-    return brief
-
-
-def _generate_pdf(record_text: str) -> bytes:
-    """Generate a PDF with a Decision Brief lead page followed by the analytic record."""
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        leftMargin=0.75 * inch,
-        rightMargin=0.75 * inch,
-        topMargin=0.75 * inch,
-        bottomMargin=0.75 * inch,
-    )
-
-    base_styles = getSampleStyleSheet()
-
-    # Decision Brief styles
-    brief_styles = {
-        "brief_title": ParagraphStyle(
-            "BriefTitle",
-            parent=base_styles["Title"],
-            fontSize=20,
-            spaceAfter=2,
-            textColor=HexColor("#1a1a1a"),
+def _build_styles():
+    """Build all paragraph styles used in the PDF."""
+    base = getSampleStyleSheet()
+    return {
+        "doc_title": ParagraphStyle(
+            "DocTitle", parent=base["Title"],
+            fontSize=22, leading=26, spaceAfter=2,
+            textColor=HexColor("#0f172a"),
         ),
-        "brief_sub": ParagraphStyle(
-            "BriefSub",
-            parent=base_styles["Normal"],
-            fontSize=9,
-            leading=11,
-            textColor=HexColor("#666666"),
+        "doc_subtitle": ParagraphStyle(
+            "DocSubtitle", parent=base["Normal"],
+            fontSize=11, leading=14, textColor=HexColor("#475569"),
             spaceAfter=4,
         ),
-        "brief_heading": ParagraphStyle(
-            "BriefHeading",
-            parent=base_styles["Heading2"],
-            fontSize=12,
-            spaceBefore=6,
-            spaceAfter=4,
+        "section_h": ParagraphStyle(
+            "SectionH", parent=base["Heading2"],
+            fontSize=14, leading=18, spaceBefore=18, spaceAfter=8,
             textColor=HexColor("#1e40af"),
         ),
-        "brief_body": ParagraphStyle(
-            "BriefBody",
-            parent=base_styles["Normal"],
-            fontSize=10,
-            leading=13,
-            spaceAfter=4,
+        "subsection_h": ParagraphStyle(
+            "SubsectionH", parent=base["Heading3"],
+            fontSize=12, leading=15, spaceBefore=10, spaceAfter=4,
+            textColor=HexColor("#1e40af"),
+            fontName="Helvetica-Bold",
         ),
-        "brief_body_muted": ParagraphStyle(
-            "BriefBodyMuted",
-            parent=base_styles["Normal"],
-            fontSize=10,
-            leading=13,
-            textColor=HexColor("#888888"),
-            spaceAfter=4,
+        "action_h": ParagraphStyle(
+            "ActionH", parent=base["Heading3"],
+            fontSize=12, leading=15, spaceBefore=12, spaceAfter=4,
+            textColor=HexColor("#0f172a"),
+            fontName="Helvetica-Bold",
         ),
-        "brief_pointer": ParagraphStyle(
-            "BriefPointer",
-            parent=base_styles["Normal"],
-            fontSize=9,
-            leading=12,
-            textColor=HexColor("#555555"),
+        "lens_h": ParagraphStyle(
+            "LensH", parent=base["Heading4"],
+            fontSize=11, leading=14, spaceBefore=0, spaceAfter=0,
+            textColor=HexColor("#1e40af"),
+            fontName="Helvetica-Bold",
+            alignment=0,
+        ),
+        "domain_h": ParagraphStyle(
+            "DomainH", parent=base["Normal"],
+            fontSize=10, leading=13, spaceBefore=8, spaceAfter=2,
+            textColor=HexColor("#0f172a"),
+            fontName="Helvetica-Bold",
+        ),
+        "body": ParagraphStyle(
+            "Body", parent=base["Normal"],
+            fontSize=10, leading=14, spaceAfter=6,
+        ),
+        "body_muted": ParagraphStyle(
+            "BodyMuted", parent=base["Normal"],
+            fontSize=10, leading=14, textColor=HexColor("#94a3b8"),
+            spaceAfter=6,
+        ),
+        "body_indented": ParagraphStyle(
+            "BodyIndented", parent=base["Normal"],
+            fontSize=10, leading=13, leftIndent=10, spaceAfter=4,
+        ),
+        "bullet": ParagraphStyle(
+            "Bullet", parent=base["Normal"],
+            fontSize=10, leading=13, leftIndent=20, bulletIndent=10,
+            spaceAfter=3,
+        ),
+        "framework_note": ParagraphStyle(
+            "FrameworkNote", parent=base["Normal"],
+            fontSize=9, leading=12, textColor=HexColor("#475569"),
+            spaceAfter=4, leftIndent=10, rightIndent=10,
+        ),
+        "pointer": ParagraphStyle(
+            "Pointer", parent=base["Normal"],
+            fontSize=9, leading=12, textColor=HexColor("#64748b"),
             spaceAfter=2,
         ),
     }
 
-    # Analytic record styles
-    record_title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=base_styles["Title"],
-        fontSize=16,
-        spaceAfter=6,
-        textColor=HexColor("#1a1a1a"),
-    )
-    record_heading_style = ParagraphStyle(
-        "CustomHeading",
-        parent=base_styles["Heading2"],
-        fontSize=12,
-        spaceBefore=12,
-        spaceAfter=4,
-        textColor=HexColor("#1e40af"),
-    )
-    record_body_style = ParagraphStyle(
-        "CustomBody",
-        parent=base_styles["Normal"],
-        fontSize=9,
-        leading=12,
-        spaceAfter=3,
-    )
-    record_sub_style = ParagraphStyle(
-        "CustomSub",
-        parent=base_styles["Normal"],
-        fontSize=8,
-        leading=10,
-        textColor=HexColor("#666666"),
-        spaceAfter=2,
+
+def _draw_page_decoration(canvas, doc):
+    """Draw the page number in the footer of every page."""
+    canvas.saveState()
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(HexColor("#94a3b8"))
+    canvas.drawCentredString(letter[0] / 2, 0.4 * inch, f"Page {doc.page}")
+    canvas.restoreState()
+
+
+def _section_divider():
+    """A light horizontal rule placed above each numbered section heading."""
+    return HRFlowable(
+        width="100%", thickness=0.5, color=HexColor("#cbd5e1"),
+        spaceBefore=18, spaceAfter=2,
     )
 
+
+# ────────────────────────────────────────────────────────────────────
+# PDF: SECTION BUILDERS
+# ────────────────────────────────────────────────────────────────────
+
+def _build_constraint_table(styles):
+    """Build the constraint table for Section 2."""
+    constraints = st.session_state.constraints
+    if not constraints:
+        return Paragraph(
+            "<i>No constraints declared.</i>",
+            styles["body_muted"],
+        )
+
+    data = [["Constraint Category", "Specification"]]
+    for key, info in constraints.items():
+        label = info.get("label", key)
+        spec = info.get("specification", "").strip() or "(no specification provided)"
+        data.append([
+            Paragraph(f"<b>{_escape_xml(label)}</b>", styles["body"]),
+            Paragraph(_escape_xml(spec), styles["body"]),
+        ])
+
+    table = Table(
+        data,
+        colWidths=[2.0 * inch, 4.3 * inch],
+        repeatRows=1,
+    )
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1e40af")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#ffffff")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+        ("TOPPADDING", (0, 1), (-1, -1), 8),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, HexColor("#cbd5e1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+            [HexColor("#ffffff"), HexColor("#f8fafc")]),
+    ]))
+    return table
+
+
+def _build_action_block(action_idx, action_text, styles):
+    """Build an action description block with a subtle highlighted background."""
+    table = Table(
+        [[Paragraph(
+            f"<b>Action {action_idx + 1}.</b> {_escape_xml(action_text)}",
+            styles["body"]
+        )]],
+        colWidths=[6.3 * inch],
+    )
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#f1f5f9")),
+        ("LINELEFT", (0, 0), (0, -1), 3, HexColor("#1e40af")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    return table
+
+
+def _build_domain_block(action_idx, framework, styles):
+    """Build a list of flowables for one framework's domains for one action.
+
+    Returns an empty list if no activated domains have content.
+    """
+    if framework == "pfce":
+        order = PFCE_DISPLAY_ORDER
+        selected = st.session_state.selected_pfce_domains
+    else:
+        order = NIST_DISPLAY_ORDER
+        selected = st.session_state.selected_nist_domains
+
+    items = []
+    for domain_key in order:
+        if domain_key not in selected:
+            continue
+        text, patterns = _get_consideration_parts(action_idx, domain_key)
+        if text is None and patterns is None:
+            continue
+
+        items.append(Paragraph(
+            DOMAIN_DISPLAY_NAMES.get(domain_key, domain_key.title()),
+            styles["domain_h"]
+        ))
+        if text:
+            items.append(Paragraph(
+                _escape_xml(text), styles["body_indented"]
+            ))
+        if patterns:
+            for p in patterns:
+                items.append(Paragraph(
+                    _escape_xml(p),
+                    styles["bullet"],
+                    bulletText="•",
+                ))
+    return items
+
+
+def _build_action_considerations_table(action_idx, styles):
+    """Build the 2-column considerations table for one action.
+
+    Ethical (PFCE) on the left, technical (NIST CSF) on the right. Mirrors
+    the Stage 5 prototype layout. Column header row identifies the lens;
+    the content row holds the elicited considerations.
+    """
+    pfce_content = _build_domain_block(action_idx, "pfce", styles)
+    nist_content = _build_domain_block(action_idx, "nist", styles)
+
+    if not pfce_content:
+        pfce_content = [Paragraph(
+            "<i>No ethical considerations identified for this action.</i>",
+            styles["body_muted"]
+        )]
+    if not nist_content:
+        nist_content = [Paragraph(
+            "<i>No technical considerations identified for this action.</i>",
+            styles["body_muted"]
+        )]
+
+    data = [
+        [
+            Paragraph("Ethical Considerations (PFCE)", styles["lens_h"]),
+            Paragraph("Technical Considerations (NIST CSF)", styles["lens_h"]),
+        ],
+        [pfce_content, nist_content],
+    ]
+
+    table = Table(
+        data,
+        colWidths=[3.15 * inch, 3.15 * inch],
+        repeatRows=1,
+    )
+    table.setStyle(TableStyle([
+        # Header row
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#eff6ff")),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("LEFTPADDING", (0, 0), (-1, 0), 12),
+        ("RIGHTPADDING", (0, 0), (-1, 0), 12),
+        ("LINEBELOW", (0, 0), (-1, 0), 1, HexColor("#1e40af")),
+        # Content row
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 1), (-1, 1), 10),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), 10),
+        ("LEFTPADDING", (0, 1), (-1, 1), 12),
+        ("RIGHTPADDING", (0, 1), (-1, 1), 12),
+        # Outer box and column divider
+        ("BOX", (0, 0), (-1, -1), 0.5, HexColor("#cbd5e1")),
+        ("LINEAFTER", (0, 0), (0, -1), 0.5, HexColor("#cbd5e1")),
+    ]))
+    return table
+
+
+# ────────────────────────────────────────────────────────────────────
+# PDF: BRIEF (page 1)
+# ────────────────────────────────────────────────────────────────────
+
+def _build_brief(styles, date_str):
+    """Build the Decision Brief flowables (lead page of the PDF)."""
+    items = []
+
+    # Document header
+    items.append(Paragraph("Documented Record", styles["doc_title"]))
+    items.append(Paragraph(
+        "Ethical and Technical Consideration Analysis for a Municipal Cybersecurity Decision",
+        styles["doc_subtitle"]
+    ))
+    items.append(HRFlowable(
+        width="100%", thickness=1.5, color=HexColor("#1e40af"),
+        spaceBefore=4, spaceAfter=16,
+    ))
+
+    # Decision Brief heading
+    items.append(Paragraph("Decision Brief", styles["section_h"]))
+    items.append(Paragraph(
+        f"Record generated {date_str}",
+        styles["body_muted"]
+    ))
+    items.append(Spacer(1, 6))
+
+    # Decision Point
+    items.append(Paragraph("Decision Point", styles["subsection_h"]))
+    decision = st.session_state.decision_description.strip() or "(not specified)"
+    items.append(Paragraph(_escape_xml(decision), styles["body"]))
+
+    # Decision-Maker (only if provided)
+    actor = st.session_state.responsible_actor.strip()
+    if actor:
+        items.append(Paragraph("Decision-Maker", styles["subsection_h"]))
+        items.append(Paragraph(_escape_xml(actor), styles["body"]))
+
+    # Key Considerations
+    items.append(Paragraph("Key Considerations", styles["subsection_h"]))
+    key_cons = st.session_state.stage6_key_considerations.strip()
+    if key_cons:
+        for para in key_cons.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    # Decision Reasoning
+    items.append(Paragraph("Decision Reasoning", styles["subsection_h"]))
+    reasoning = st.session_state.stage6_reasoning.strip()
+    if reasoning:
+        for para in reasoning.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    # Observations
+    items.append(Paragraph("Observations", styles["subsection_h"]))
+    obs = st.session_state.stage6_observations.strip()
+    if obs:
+        for para in obs.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    # Pointer
+    items.append(Spacer(1, 16))
+    items.append(HRFlowable(
+        width="100%", thickness=0.5, color=HexColor("#cbd5e1"),
+        spaceBefore=4, spaceAfter=8,
+    ))
+    items.append(Paragraph(
+        "The complete analytic record follows. It documents the decision "
+        "point, the constraints shaping the decision environment, the "
+        "actions considered, and the ethical and technical considerations "
+        "elicited for each action.",
+        styles["pointer"]
+    ))
+
+    return items
+
+
+# ────────────────────────────────────────────────────────────────────
+# PDF: RECORD (pages 2+)
+# ────────────────────────────────────────────────────────────────────
+
+def _build_record(styles):
+    """Build the Analytic Record flowables (pages 2 onward)."""
+    items = []
+
+    # Title
+    items.append(Paragraph("Analytic Record", styles["doc_title"]))
+    items.append(Paragraph(
+        "Six-stage record of the elicitation and integration sequence.",
+        styles["doc_subtitle"]
+    ))
+    items.append(HRFlowable(
+        width="100%", thickness=1.5, color=HexColor("#1e40af"),
+        spaceBefore=4, spaceAfter=14,
+    ))
+
+    # Framework primer — explains PFCE and NIST CSF for the lay reader
+    primer_table = Table(
+        [[Paragraph(
+            "<b>About this record.</b> This record was produced using a "
+            "structured framework that applies two interpretive lenses to a "
+            "cybersecurity decision: the <b>Principlist Framework for "
+            "Cybersecurity Ethics (PFCE)</b>, which identifies ethical "
+            "considerations across five principles (beneficence, "
+            "non-maleficence, autonomy, justice, and explicability), and the "
+            "<b>NIST Cybersecurity Framework 2.0</b>, which organizes "
+            "technical considerations across six functions (govern, identify, "
+            "protect, detect, respond, and recover). The two lenses are "
+            "applied separately and presented together, making visible both "
+            "the ethical and technical dimensions of the decision.",
+            styles["framework_note"]
+        )]],
+        colWidths=[6.3 * inch],
+    )
+    primer_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#eff6ff")),
+        ("LINELEFT", (0, 0), (0, -1), 3, HexColor("#1e40af")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    items.append(primer_table)
+
+    # ── Section 1: Decision Point ──
+    items.append(_section_divider())
+    items.append(Paragraph("1. Decision Point", styles["section_h"]))
+    decision = st.session_state.decision_description.strip() or "(not specified)"
+    items.append(Paragraph(_escape_xml(decision), styles["body"]))
+    actor = st.session_state.responsible_actor.strip()
+    if actor:
+        items.append(Paragraph(
+            f"<b>Decision-Maker:</b> {_escape_xml(actor)}",
+            styles["body"]
+        ))
+
+    # ── Section 2: Decision Environment ──
+    items.append(_section_divider())
+    items.append(Paragraph("2. Decision Environment", styles["section_h"]))
+    items.append(Paragraph(
+        "The following constraints define the decision environment within "
+        "which feasible actions were identified.",
+        styles["body"]
+    ))
+    items.append(Spacer(1, 4))
+    items.append(_build_constraint_table(styles))
+
+    # ── Section 3: Actions Considered ──
+    actions = _get_actions()
+    items.append(_section_divider())
+    items.append(Paragraph("3. Actions Considered", styles["section_h"]))
+    items.append(Paragraph(
+        "The following actions were declared as feasible options at this "
+        "decision point.",
+        styles["body"]
+    ))
+    items.append(Spacer(1, 4))
+    for action_idx, action_text in actions:
+        items.append(_build_action_block(action_idx, action_text, styles))
+        items.append(Spacer(1, 6))
+
+    # ── Section 4: Considerations Analyzed ──
+    items.append(_section_divider())
+    items.append(Paragraph("4. Considerations Analyzed", styles["section_h"]))
+    items.append(Paragraph(
+        "For each declared action, the framework elicited considerations "
+        "across the ethical principles (PFCE) and technical functions "
+        "(NIST CSF) activated for this decision. The two lenses are "
+        "presented side by side, making visible the integrated landscape "
+        "for each action.",
+        styles["body"]
+    ))
+
+    for action_idx, action_text in actions:
+        # Wrap heading + table in KeepTogether so the action heading stays
+        # with its table when content fits on a page. If a table is too
+        # tall, reportlab will split it on its own.
+        action_block = [
+            Spacer(1, 10),
+            Paragraph(
+                f"Action {action_idx + 1}: {_escape_xml(action_text)}",
+                styles["action_h"]
+            ),
+            Spacer(1, 4),
+            _build_action_considerations_table(action_idx, styles),
+        ]
+        items.append(KeepTogether(action_block))
+
+    # ── Section 5: Documentation ──
+    items.append(_section_divider())
+    items.append(Paragraph("5. Documentation", styles["section_h"]))
+
+    items.append(Paragraph("Observations", styles["subsection_h"]))
+    obs = st.session_state.stage6_observations.strip()
+    if obs:
+        for para in obs.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    items.append(Paragraph("Key Considerations", styles["subsection_h"]))
+    key_cons = st.session_state.stage6_key_considerations.strip()
+    if key_cons:
+        for para in key_cons.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    items.append(Paragraph("Decision Reasoning", styles["subsection_h"]))
+    reasoning = st.session_state.stage6_reasoning.strip()
+    if reasoning:
+        for para in reasoning.split("\n"):
+            if para.strip():
+                items.append(Paragraph(
+                    _escape_xml(para), styles["body"]
+                ))
+    else:
+        items.append(Paragraph(
+            "<i>Not documented.</i>", styles["body_muted"]
+        ))
+
+    return items
+
+
+# ────────────────────────────────────────────────────────────────────
+# PDF: ENTRY POINT
+# ────────────────────────────────────────────────────────────────────
+
+def _generate_pdf() -> bytes:
+    """Generate the Documented Record PDF.
+
+    Layout:
+        Page 1: Decision Brief (one-page executive summary)
+        Page 2+: Analytic Record (five numbered sections with side-by-side
+                 considerations tables per action)
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=0.85 * inch,
+        rightMargin=0.85 * inch,
+        topMargin=0.85 * inch,
+        bottomMargin=0.75 * inch,
+    )
+
+    styles = _build_styles()
     date_str = datetime.now().strftime("%B %d, %Y")
 
     story = []
+    story.extend(_build_brief(styles, date_str))
+    story.append(PageBreak())
+    story.extend(_build_record(styles))
 
-    # 1. Decision Brief (lead page)
-    story.extend(_build_decision_brief_story(brief_styles, date_str))
-
-    # 2. Analytic Record (following pages)
-    story.append(Paragraph("Analytic Record", record_title_style))
-    story.append(
-        Paragraph(
-            "Complete six-stage record of the elicitation and integration "
-            "sequence.",
-            record_sub_style,
-        )
+    doc.build(
+        story,
+        onFirstPage=_draw_page_decoration,
+        onLaterPages=_draw_page_decoration,
     )
-    story.append(Spacer(1, 12))
-
-    for line in record_text.split("\n"):
-        if line.startswith("=" * 20):
-            story.append(
-                HRFlowable(
-                    width="100%",
-                    thickness=1,
-                    color=HexColor("#333333"),
-                    spaceAfter=4,
-                    spaceBefore=8,
-                )
-            )
-        elif line.isupper() and len(line) > 5 and ":" not in line:
-            story.append(Paragraph(_escape_xml(line), record_heading_style))
-        elif line.startswith("-" * 10):
-            story.append(
-                HRFlowable(
-                    width="90%",
-                    thickness=0.5,
-                    color=HexColor("#cccccc"),
-                    spaceAfter=3,
-                    spaceBefore=3,
-                )
-            )
-        elif line.strip():
-            story.append(Paragraph(_escape_xml(line), record_body_style))
-        else:
-            story.append(Spacer(1, 6))
-
-    doc.build(story)
     return buffer.getvalue()
 
 
+# ────────────────────────────────────────────────────────────────────
+# IN-APP RECORD SUMMARY (collapsible)
+# ────────────────────────────────────────────────────────────────────
+
 def _render_record_summary():
-    """Render the collapsible read-only record summary."""
+    """Render the collapsible read-only record summary (in-app, not PDF)."""
     actions = _get_actions()
 
     # Decision Point
@@ -553,6 +790,10 @@ def _render_record_summary():
     st.markdown(reasoning if reasoning else "*None documented*")
 
 
+# ────────────────────────────────────────────────────────────────────
+# STAGE 6 ENTRY POINT
+# ────────────────────────────────────────────────────────────────────
+
 def render_stage6():
     """Documentation stage — observations, reasoning, review, and export."""
     st.header("Stage 6: Documentation")
@@ -615,8 +856,7 @@ def render_stage6():
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     # Export
-    record_text = _compile_record()
-    pdf_bytes = _generate_pdf(record_text)
+    pdf_bytes = _generate_pdf()
     st.download_button(
         label="Export Documented Record",
         data=pdf_bytes,
@@ -635,3 +875,4 @@ def render_stage6():
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+        
