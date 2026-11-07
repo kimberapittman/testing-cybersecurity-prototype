@@ -16,6 +16,12 @@ def render_stage3():
     )
 
     st.markdown(
+        "Declare at least two actions. A decision point is a choice among "
+        "feasible alternatives, so a single action under review is not yet "
+        "a decision."
+    )
+
+    st.markdown(
         "Each action should describe an operational commitment — what you "
         "would actually do — rather than implementation steps."
     )
@@ -42,7 +48,7 @@ def render_stage3():
             )
             updated_actions.append(val)
         with col2:
-            if len(actions) > 1:
+            if len(actions) > 2:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("✕", key=f"remove_action_{i}", help="Remove this action"):
                     actions.pop(i)
@@ -60,10 +66,14 @@ def render_stage3():
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if not filled_actions:
-        st.info("Declare at least one action to proceed to Stage 4.")
+    if len(filled_actions) < 2:
+        st.info(
+            "Declare at least two actions to proceed to Stage 4. A decision "
+            "point is a choice among feasible alternatives, so a single "
+            "declared action does not constitute a decision."
+        )
     else:
-        st.success(f"{len(filled_actions)} action(s) declared.")
+        st.success(f"{len(filled_actions)} actions declared.")
         if st.button(
             "Proceed to Stage 4: Consideration Elicitation →",
             type="primary",

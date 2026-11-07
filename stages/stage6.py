@@ -19,6 +19,8 @@ from reportlab.platypus import (
     KeepTogether,
 )
 
+from stages.stage2 import CONSTRAINT_CATEGORIES
+
 
 # ────────────────────────────────────────────────────────────────────
 # CONSTANTS
@@ -91,9 +93,8 @@ def _get_consideration_text(action_idx, domain_key):
     parts = []
     if text:
         parts.append(text)
-    if patterns:
-        for p in patterns:
-            parts.append(f"- {p}")
+    for p in patterns:
+        parts.append(f"- {_format_pattern(p)}")
 
     return "\n".join(parts)
 
@@ -129,6 +130,15 @@ def _get_consideration_parts(action_idx, domain_key):
         return None, None
 
     return text, patterns
+
+
+def _format_pattern(pattern):
+    """Render a selected pattern with the specification of how it applies."""
+    if not isinstance(pattern, dict):
+        return str(pattern)
+    label = pattern.get("label", "")
+    spec = pattern.get("specification", "").strip()
+    return f"{label} — {spec}" if spec else label
 
 
 def _escape_xml(text):
@@ -242,13 +252,13 @@ def _section_divider():
 # ────────────────────────────────────────────────────────────────────
 
 def _build_constraint_table(styles):
-    """Build the constraint table for Section 2."""
+    """Build the constraint table for Section 2.
+
+    Every category is listed, whether activated or not. Explicit
+    non-activation is part of the Stage 2 record: a category absent from the
+    table could not be distinguished from one that was never considered.
+    """
     constraints = st.session_state.constraints
-    if not constraints:
-        return Paragraph(
-            "<i>No constraints declared.</i>",
-            styles["body_muted"],
-        )
 
     data = [["Constraint Category", "Specification"]]
     for key, info in constraints.items():
@@ -257,6 +267,20 @@ def _build_constraint_table(styles):
         data.append([
             Paragraph(f"<b>{_escape_xml(label)}</b>", styles["body"]),
             Paragraph(_escape_xml(spec), styles["body"]),
+        ])
+
+    for key, label, _prompt in CONSTRAINT_CATEGORIES:
+        if key in constraints:
+            continue
+        data.append([
+            Paragraph(_escape_xml(label), styles["body_muted"]),
+            Paragraph("<i>Not activated</i>", styles["body_muted"]),
+        ])
+
+    if "other" not in constraints:
+        data.append([
+            Paragraph("Other", styles["body_muted"]),
+            Paragraph("<i>Not activated</i>", styles["body_muted"]),
         ])
 
     table = Table(
@@ -335,11 +359,59 @@ def _build_domain_block(action_idx, framework, styles):
         if patterns:
             for p in patterns:
                 items.append(Paragraph(
-                    _escape_xml(p),
+                    _escape_xml(_format_pattern(p)),
                     styles["bullet"],
                     bulletText="•",
                 ))
     return items
+
+
+def _build_activation_table(styles):
+    """Build the Tier 1 activation profile.
+
+    Every PFCE principle and NIST CSF function is listed with its activation
+    judgment. Recording non-activation is what distinguishes a domain that was
+    considered and found not implicated from one that was never reached.
+    """
+    data = [["Domain", "Lens", "Tier 1 Judgment"]]
+
+    for order, lens, selected in (
+        (PFCE_DISPLAY_ORDER, "PFCE", st.session_state.selected_pfce_domains),
+        (NIST_DISPLAY_ORDER, "NIST CSF", st.session_state.selected_nist_domains),
+    ):
+        for domain_key in order:
+            activated = domain_key in selected
+            style = styles["body"] if activated else styles["body_muted"]
+            judgment = "Activated" if activated else "<i>Not activated</i>"
+            data.append([
+                Paragraph(
+                    DOMAIN_DISPLAY_NAMES.get(domain_key, domain_key.title()),
+                    style,
+                ),
+                Paragraph(lens, style),
+                Paragraph(judgment, style),
+            ])
+
+    table = Table(
+        data,
+        colWidths=[2.6 * inch, 1.3 * inch, 2.4 * inch],
+        repeatRows=1,
+    )
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#1e40af")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#ffffff")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, HexColor("#cbd5e1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+            [HexColor("#ffffff"), HexColor("#f8fafc")]),
+    ]))
+    return table
 
 
 def _build_action_considerations_table(action_idx, styles):
@@ -434,6 +506,13 @@ def _build_brief(styles, date_str):
     if actor:
         items.append(Paragraph("Decision-Maker", styles["subsection_h"]))
         items.append(Paragraph(_escape_xml(actor), styles["body"]))
+
+    # Prepared By — the person who produced this record, who is not
+    # necessarily the decision-maker (e.g. an analyst working retrospectively)
+    author = st.session_state.record_author.strip()
+    if author:
+        items.append(Paragraph("Prepared By", styles["subsection_h"]))
+        items.append(Paragraph(_escape_xml(author), styles["body"]))
 
     # Key Considerations
     items.append(Paragraph("Key Considerations", styles["subsection_h"]))
@@ -552,6 +631,12 @@ def _build_record(styles):
             f"<b>Decision-Maker:</b> {_escape_xml(actor)}",
             styles["body"]
         ))
+    author = st.session_state.record_author.strip()
+    if author:
+        items.append(Paragraph(
+            f"<b>Record Prepared By:</b> {_escape_xml(author)}",
+            styles["body"]
+        ))
 
     # ── Section 2: Decision Environment ──
     items.append(_section_divider())
@@ -581,6 +666,19 @@ def _build_record(styles):
     # ── Section 4: Considerations Analyzed ──
     items.append(_section_divider())
     items.append(Paragraph("4. Considerations Analyzed", styles["section_h"]))
+
+    items.append(Paragraph("Activation Profile", styles["subsection_h"]))
+    items.append(Paragraph(
+        "Each ethical principle and technical function was judged at Tier 1 "
+        "as either implicated by this decision point or not. Both judgments "
+        "are recorded below.",
+        styles["body"]
+    ))
+    items.append(Spacer(1, 4))
+    items.append(_build_activation_table(styles))
+    items.append(Spacer(1, 10))
+
+    items.append(Paragraph("Elicited Considerations", styles["subsection_h"]))
     items.append(Paragraph(
         "For each declared action, the framework elicited considerations "
         "across the ethical principles (PFCE) and technical functions "
@@ -703,6 +801,9 @@ def _render_record_summary():
     actor = st.session_state.responsible_actor.strip()
     if actor:
         st.markdown(f"**Decision-maker:** {actor}")
+    author = st.session_state.record_author.strip()
+    if author:
+        st.markdown(f"**Record prepared by:** {author}")
 
     # Constraints
     st.subheader("Constraints")
@@ -805,6 +906,20 @@ def render_stage6():
         unsafe_allow_html=True,
     )
 
+    # The record must be attributable to the person who produced it, who is
+    # not necessarily the decision-maker named in Stage 1.
+    st.session_state.record_author = st.text_input(
+        "Record prepared by",
+        value=st.session_state.record_author,
+        placeholder="Name of the person completing this analysis",
+        help=(
+            "The individual who produced this record. This may differ from "
+            "the decision-maker named in Stage 1 — for example, an analyst "
+            "completing the analysis on their behalf or from the public record."
+        ),
+        key="input_record_author",
+    )
+
     # Text Area 1: Observations
     st.session_state.stage6_observations = st.text_area(
         "Having reviewed your ethical and technical considerations together, "
@@ -855,16 +970,22 @@ def render_stage6():
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    # Export
-    pdf_bytes = _generate_pdf()
-    st.download_button(
-        label="Export Documented Record",
-        data=pdf_bytes,
-        file_name="documented_record.pdf",
-        mime="application/pdf",
-        type="primary",
-        use_container_width=True,
-    )
+    # Export — the record must name the person who produced it.
+    if not st.session_state.record_author.strip():
+        st.info(
+            "Name the person preparing this record to export it. The "
+            "documented analysis must be attributable to a named individual."
+        )
+    else:
+        pdf_bytes = _generate_pdf()
+        st.download_button(
+            label="Export Documented Record",
+            data=pdf_bytes,
+            file_name="documented_record.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+        )
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
     if st.button(

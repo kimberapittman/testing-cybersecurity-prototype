@@ -182,7 +182,9 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                 placeholder="Based on the guiding questions above, describe any considerations that apply...",
             )
 
-            # 4. Pattern checkboxes — inside collapsed expander
+            # 4. Pattern checkboxes — inside collapsed expander. A selected
+            # pattern is a recognition aid, not a consideration: it carries a
+            # brief specification of how it applies to this action.
             selected_patterns = []
             with st.expander(
                 "Common considerations in this domain (select any that also apply)",
@@ -196,7 +198,18 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                         key=pat_uid,
                     )
                     if is_checked:
-                        selected_patterns.append(pattern_label)
+                        spec_uid = f"patspec_{uid}_{pat_idx}"
+                        pattern_spec = st.text_input(
+                            f"How does '{pattern_label}' apply to this action?",
+                            value=st.session_state.get(spec_uid, ""),
+                            key=spec_uid,
+                            placeholder="Briefly describe how this applies to this action...",
+                            label_visibility="collapsed",
+                        )
+                        selected_patterns.append({
+                            "label": pattern_label,
+                            "specification": pattern_spec.strip(),
+                        })
 
             # 5. N/A checkbox
             na_uid = f"pat_na_{uid}"
@@ -223,6 +236,20 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                 }
             else:
                 responses["0"] = {"text": "", "patterns": [], "na": False}
+
+
+def pattern_label(pattern):
+    """A pattern is a dict; sessions begun before this change may hold a string."""
+    if isinstance(pattern, dict):
+        return pattern.get("label", "")
+    return str(pattern)
+
+
+def pattern_is_specified(pattern):
+    """True if this selected pattern says how it applies to the action."""
+    if isinstance(pattern, dict):
+        return bool(pattern.get("specification", "").strip())
+    return True
 
 
 def _activated_domains():
@@ -267,6 +294,28 @@ def _find_undispositioned():
     ]
 
 
+def _find_unspecified_patterns():
+    """Return (action number, domain key, label) for patterns lacking a spec."""
+    domains = _activated_domains()
+    found = []
+    for action_idx, _ in _get_actions():
+        for domain_key in domains:
+            data = (
+                st.session_state.tier2_responses
+                .get(str(action_idx), {})
+                .get(domain_key, {})
+                .get("0", {})
+            )
+            if not isinstance(data, dict):
+                continue
+            for pattern in data.get("patterns", []):
+                if not pattern_is_specified(pattern):
+                    found.append(
+                        (action_idx + 1, domain_key, pattern_label(pattern))
+                    )
+    return found
+
+
 def render_stage4():
     """Two-tier consideration elicitation."""
     st.header("Stage 4: Consideration Elicitation")
@@ -295,6 +344,7 @@ def render_stage4():
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
     undispositioned = _find_undispositioned()
+    unspecified = _find_unspecified_patterns()
 
     if undispositioned:
         st.info(
@@ -306,6 +356,17 @@ def render_stage4():
             st.markdown(f"- Action {action_num} — {domain_key}")
         if len(undispositioned) > 10:
             st.markdown(f"- …and {len(undispositioned) - 10} more")
+    elif unspecified:
+        st.info(
+            f"{len(unspecified)} selected consideration(s) need a brief "
+            "specification of how they apply to the action. A selection "
+            "without a specification records that something applies without "
+            "recording what."
+        )
+        for action_num, domain_key, label in unspecified[:10]:
+            st.markdown(f"- Action {action_num} — {domain_key}: {label}")
+        if len(unspecified) > 10:
+            st.markdown(f"- …and {len(unspecified) - 10} more")
     else:
         st.success("Ready to proceed to integration.")
         if st.button(

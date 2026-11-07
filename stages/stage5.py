@@ -2,6 +2,7 @@
 
 import streamlit as st
 from domain_data import NIST_DOMAINS, PFCE_DOMAINS
+from stages.stage4 import pattern_label
 
 PFCE_DISPLAY_ORDER = ["BENEFICENCE", "NON-MALEFICENCE", "AUTONOMY", "JUSTICE", "EXPLICABILITY"]
 NIST_DISPLAY_ORDER = ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"]
@@ -45,9 +46,10 @@ def _get_consideration_text(action_idx, domain_key):
     parts = []
     if text:
         parts.append(text)
-    if patterns:
-        for p in patterns:
-            parts.append(f"- {p}")
+    for p in patterns:
+        label = pattern_label(p)
+        spec = p.get("specification", "").strip() if isinstance(p, dict) else ""
+        parts.append(f"- **{label}** — {spec}" if spec else f"- {label}")
 
     return "\n".join(parts)
 
