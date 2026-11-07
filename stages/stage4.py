@@ -225,9 +225,46 @@ def _render_domain_prompts(action_idx, action_key, domains, all_actions,
                 responses["0"] = {"text": "", "patterns": [], "na": False}
 
 
-def _check_tier2_complete():
-    """No mandatory completion required for Tier 2. User may proceed at any time."""
-    return True
+def _activated_domains():
+    """Return every domain activated at Tier 1, ethical before technical."""
+    return (
+        list(st.session_state.selected_pfce_domains)
+        + list(st.session_state.selected_nist_domains)
+    )
+
+
+def _is_dispositioned(action_key, domain_key):
+    """True if this action+domain carries content or an explicit N/A mark.
+
+    Content is not required — a domain may legitimately not apply to a given
+    action — but the determination must be recorded rather than left silent.
+    """
+    data = (
+        st.session_state.tier2_responses
+        .get(action_key, {})
+        .get(domain_key, {})
+        .get("0", {})
+    )
+
+    if isinstance(data, str):
+        return bool(data.strip())
+
+    return bool(
+        data.get("na", False)
+        or data.get("text", "").strip()
+        or data.get("patterns", [])
+    )
+
+
+def _find_undispositioned():
+    """Return (action number, domain key) pairs still awaiting a disposition."""
+    domains = _activated_domains()
+    return [
+        (action_idx + 1, domain_key)
+        for action_idx, _ in _get_actions()
+        for domain_key in domains
+        if not _is_dispositioned(str(action_idx), domain_key)
+    ]
 
 
 def render_stage4():
@@ -241,19 +278,35 @@ def render_stage4():
         unsafe_allow_html=True,
     )
 
-    tier1_complete = _render_tier1()
-
-    if not tier1_complete:
-        return
+    _render_tier1()
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
+
+    if not _activated_domains():
+        st.info(
+            "Select at least one domain above to proceed. Domains not "
+            "selected here are recorded as not implicated by this "
+            "decision point."
+        )
+        return
+
     _render_tier2()
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    tier2_complete = _check_tier2_complete()
+    undispositioned = _find_undispositioned()
 
-    if tier2_complete:
+    if undispositioned:
+        st.info(
+            f"{len(undispositioned)} domain(s) await a disposition. For each "
+            "action, describe the considerations that apply, select a common "
+            "consideration, or mark the domain not applicable."
+        )
+        for action_num, domain_key in undispositioned[:10]:
+            st.markdown(f"- Action {action_num} — {domain_key}")
+        if len(undispositioned) > 10:
+            st.markdown(f"- …and {len(undispositioned) - 10} more")
+    else:
         st.success("Ready to proceed to integration.")
         if st.button(
             "Proceed to Stage 5: Integration →",

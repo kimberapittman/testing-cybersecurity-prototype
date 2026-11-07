@@ -3,6 +3,16 @@
 import streamlit as st
 
 
+def _missing_specifications():
+    """Return labels for the required specifications not yet provided."""
+    missing = []
+    if not st.session_state.decision_description.strip():
+        missing.append("a decision point description")
+    if not st.session_state.responsible_actor.strip():
+        missing.append("a decision-maker name or role")
+    return missing
+
+
 def render_stage1():
     """Establish the unit of analysis."""
     st.header("Stage 1: Decision-Point Specification")
@@ -42,7 +52,15 @@ def render_stage1():
 
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if st.button(
+    missing = _missing_specifications()
+
+    if missing:
+        st.info(
+            f"Specify {' and '.join(missing)} to proceed to Stage 2. "
+            "Every consideration elicited in later stages is indexed to "
+            "this decision point."
+        )
+    elif st.button(
         "Proceed to Stage 2: Decision Environment →",
         type="primary",
         use_container_width=True,

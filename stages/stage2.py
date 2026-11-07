@@ -127,9 +127,38 @@ def render_stage2():
     else:
         st.session_state.constraints.pop("other", None)
 
+    # Proceeding with no declared constraints must be an affirmation that none
+    # apply, not a silence that cannot be distinguished from not having looked.
+    if not st.session_state.constraints:
+        st.session_state.no_constraints_affirmed = st.checkbox(
+            "No constraints apply to this decision.",
+            value=st.session_state.get("no_constraints_affirmed", False),
+            key="chk_no_constraints",
+        )
+    else:
+        st.session_state.no_constraints_affirmed = False
+
     st.markdown('<hr class="gradient-divider">', unsafe_allow_html=True)
 
-    if st.button(
+    unspecified = [
+        value["label"]
+        for value in st.session_state.constraints.values()
+        if not value.get("specification", "").strip()
+    ]
+
+    if unspecified:
+        st.info(
+            "Describe how each selected constraint applies before proceeding: "
+            + ", ".join(unspecified)
+            + ". A constraint that is not specified cannot inform which "
+            "actions are feasible in Stage 3."
+        )
+    elif not st.session_state.constraints and not st.session_state.no_constraints_affirmed:
+        st.info(
+            "Declare at least one constraint, or affirm that none apply, "
+            "to proceed to Stage 3."
+        )
+    elif st.button(
         "Proceed to Stage 3: Declared Actions →",
         type="primary",
         use_container_width=True,
