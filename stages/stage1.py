@@ -1,4 +1,4 @@
-"""Stage 1: Decision-Point Specification."""
+"""Stage 1: Decision Point Specification."""
 
 import streamlit as st
 
@@ -15,7 +15,7 @@ def _missing_specifications():
 
 def render_stage1():
     """Establish the unit of analysis."""
-    st.header("Stage 1: Decision-Point Specification")
+    st.header("Stage 1: Decision Point Specification")
     st.markdown(
         '<div class="stage-purpose">'
         "<strong>Purpose:</strong> Establish the unit of analysis — what decision "

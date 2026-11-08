@@ -596,7 +596,7 @@ def _build_record(styles):
     primer_table = Table(
         [[Paragraph(
             "<b>About this record.</b> This record was produced using a "
-            "structured framework that applies two interpretive lenses to a "
+            "structured method that applies two interpretive lenses to a "
             "cybersecurity decision: the <b>Principlist Framework for "
             "Cybersecurity Ethics (PFCE)</b>, which identifies ethical "
             "considerations across five principles (beneficence, "
@@ -680,7 +680,7 @@ def _build_record(styles):
 
     items.append(Paragraph("Elicited Considerations", styles["subsection_h"]))
     items.append(Paragraph(
-        "For each declared action, the framework elicited considerations "
+        "For each declared action, the method elicited considerations "
         "across the ethical principles (PFCE) and technical functions "
         "(NIST CSF) activated for this decision. The two lenses are "
         "presented side by side, making visible the integrated landscape "

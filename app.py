@@ -1,5 +1,5 @@
 """
-Cybersecurity Decision-Point Analysis Tool
+Structured Ethical-Technical Elicitation and Integration Method
 Linear stage-based progression through six analytical stages.
 """
 
@@ -109,10 +109,10 @@ def render_progress_bar():
 
 
 def render_sidebar():
-    """Render the sidebar with tool overview, about, and resources."""
+    """Render the sidebar with method overview, about, and resources."""
     with st.sidebar:
         st.markdown(
-            "<h3 style='font-weight:700;'>Tool Overview</h3>",
+            "<h3 style='font-weight:700;'>Method Overview</h3>",
             unsafe_allow_html=True,
         )
 
@@ -121,13 +121,13 @@ def render_sidebar():
             _html_block(
                 """
                 <details class="sb-details">
-                  <summary>About This Tool</summary>
+                  <summary>About This Method</summary>
                   <div class="sb-details-body">
 
                     <span class="sb-section">What It Does</span>
                     <div class="sb-section-body">
                       <div class="sb-p">
-                        This tool structures a six-stage reasoning process
+                        This method structures a six-stage reasoning process
                         for cybersecurity decision analysis. It uses PFCE
                         ethical principles and NIST CSF 2.0 technical
                         functions as interpretive lenses to elicit
@@ -173,7 +173,7 @@ def render_sidebar():
                   <div class="sb-details-body">
 
                     <div class="sb-p">
-                      This tool draws on two established frameworks:
+                      This method draws on two source frameworks:
                     </div>
 
                     <div style="margin-left:1rem;margin-top:0.5rem;">
@@ -239,7 +239,7 @@ def render_navigation():
 
 def main():
     st.set_page_config(
-        page_title="Ethical and Technical Consideration Tool for Municipal Cybersecurity Decision Points",
+        page_title="Structured Ethical-Technical Elicitation and Integration Method",
         page_icon="🛡️",
         layout="wide",
         initial_sidebar_state="expanded",
@@ -253,7 +253,11 @@ def main():
     # Main header
     st.markdown(
         "<div style='text-align:center;'>"
-        "<h1 style='color:#60a5fa;'>Ethical and Technical Consideration Tool for Municipal Cybersecurity Decision Points</h1>"
+        "<h1 style='color:#60a5fa;'>Structured Ethical-Technical Elicitation "
+        "and Integration Method</h1>"
+        "<p style='color:#94a3b8;font-size:1.05rem;margin-top:-0.5rem;'>"
+        "Eliciting and integrating ethical and technical considerations at "
+        "municipal cybersecurity decision points</p>"
         "</div>",
         unsafe_allow_html=True,
     )
