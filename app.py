@@ -261,6 +261,8 @@ def main():
     # Main header
     st.markdown(
         "<div style='text-align:center;'>"
+        "<div style='color:#64748b;font-size:0.72rem;letter-spacing:0.22em;font-weight:700;margin-bottom:0.4rem;'>"
+        "PROTOTYPE</div>"
         "<h1 style='color:#60a5fa;'>Structured Ethical-Technical Elicitation "
         "and Integration Method</h1>"
         "<p style='color:#94a3b8;font-size:1.05rem;margin-top:-0.5rem;max-width:46rem;margin-left:auto;margin-right:auto;'>"
