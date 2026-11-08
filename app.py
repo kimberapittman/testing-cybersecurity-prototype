@@ -127,11 +127,19 @@ def render_sidebar():
                     <span class="sb-section">What It Does</span>
                     <div class="sb-section-body">
                       <div class="sb-p">
-                        This method structures a six-stage reasoning process
-                        for cybersecurity decision analysis. It uses PFCE
-                        ethical principles and NIST CSF 2.0 technical
-                        functions as interpretive lenses to elicit
-                        considerations — without prescribing outcomes.
+                        You bring a decision you need to make. The
+                        method walks you through six stages, asking what is
+                        at stake technically and ethically for each option
+                        you are considering. It never recommends an action.
+                        It makes sure nothing important goes unexamined, and
+                        it produces a record of the analysis you can share or
+                        revisit later.
+                      </div>
+                      <div class="sb-p">
+                        The questions come from two established frameworks:
+                        the Principlist Framework for Cybersecurity Ethics
+                        and the NIST Cybersecurity Framework 2.0. You do not
+                        need to know either one.
                       </div>
                     </div>
 
@@ -255,9 +263,10 @@ def main():
         "<div style='text-align:center;'>"
         "<h1 style='color:#60a5fa;'>Structured Ethical-Technical Elicitation "
         "and Integration Method</h1>"
-        "<p style='color:#94a3b8;font-size:1.05rem;margin-top:-0.5rem;'>"
-        "Eliciting and integrating ethical and technical considerations at "
-        "municipal cybersecurity decision points</p>"
+        "<p style='color:#94a3b8;font-size:1.05rem;margin-top:-0.5rem;max-width:46rem;margin-left:auto;margin-right:auto;'>"
+        "Work through one cybersecurity decision, one stage at a time — "
+        "what is at stake for your systems, and for the people affected. "
+        "The method does not tell you what to decide.</p>"
         "</div>",
         unsafe_allow_html=True,
     )
