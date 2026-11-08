@@ -447,6 +447,7 @@ def _build_action_considerations_table(action_idx, styles):
         data,
         colWidths=[3.15 * inch, 3.15 * inch],
         repeatRows=1,
+        splitInRow=1,
     )
     table.setStyle(TableStyle([
         # Header row
